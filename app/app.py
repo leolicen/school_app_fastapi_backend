@@ -1,23 +1,25 @@
 import os
 from fastapi import FastAPI, Depends
 from typing import Annotated
-from dotenv import load_dotenv
-from sqlmodel import create_engine, SQLModel, Session
-from contextlib import asynccontextmanager
 
-# carico file .env e estraggo i valori
-load_dotenv()
+from sqlmodel import create_engine, SQLModel, Session
+from contextlib import asynccontextmanager 
+
+
+# --- da cancellare ---
+
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
 
-# compongo l'URL che punta al DB su XAMPP 
-# charset=utf8mb4 => unicode completo
-# pool_timeout=30 => attesa max per connessione libera (30s)
+
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4&pool_timeout=30"
 # il parametro 'echo' serve a stampare su terminale tutte le query SQL eseguite
+
+# --- da cancellare ---
+
 engine = create_engine(DATABASE_URL, echo=True,pool_pre_ping=True)
 
 
