@@ -1,5 +1,8 @@
 from typing import Annotated, TYPE_CHECKING, List
 from sqlmodel import Relationship, SQLModel, Field
+import uuid
+from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
+from sqlalchemy import Column
 
 
 if TYPE_CHECKING:
@@ -11,7 +14,7 @@ if TYPE_CHECKING:
 # sulla app studenti
 class Company(SQLModel, table=True):
     # tutti i campi sono opzionali, la tabella verrà riempita successivamente
-    company_id: Annotated[int | None, Field(default=None, primary_key=True)]
+    company_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     name: Annotated[str, Field(max_length=50, unique=True, index=True)]
     city: Annotated[str, Field(max_length=50, index=True)]
     address: Annotated[str, Field(max_length=50)]
