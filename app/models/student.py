@@ -1,6 +1,9 @@
 from typing import TYPE_CHECKING, Annotated, List
 from sqlmodel import SQLModel, Field, Relationship
-from pydantic import EmailStr
+from pydantic import EmailStr # tipo di stringa Pydantic per validazione email
+import uuid
+from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
+from sqlalchemy import Column
 
 if TYPE_CHECKING:
     from .course import Course
@@ -13,7 +16,7 @@ class StudentBase(SQLModel):
     name: Annotated[str, Field(max_length=40)]
     surname: Annotated[str, Field(max_length=40)]
     email: Annotated[EmailStr, Field(max_length=50)]
-    course_id: int
+    course_id: uuid.UUID
     phone: Annotated[str | None, Field(max_length=10)] 
     address: Annotated[str | None, Field(max_length=50)]
 
@@ -21,10 +24,10 @@ class StudentBase(SQLModel):
 # -- modello STUDENTE IN DB -- (TABELLA)
 # contiene id (generato automaticamente) e password hashata
 class Student(StudentBase, table=True):
-    student_id: Annotated[int | None, Field(default=None, primary_key=True)]
+    student_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     hashed_password: Annotated[str, Field(max_length=255, index=True)]
     email: Annotated[EmailStr, Field(max_length=50,unique=True, index=True)]
-    course_id: Annotated[int, Field(foreign_key="course.course_id")]
+    course_id: Annotated[uuid.UUID, Field(foreign_key="course.course_id")]
     phone: Annotated[str | None, Field(max_length=10)] 
     
     course: Course = Relationship(back_populates="students")
@@ -40,4 +43,4 @@ class StudentCreate(StudentBase):
 
 # -- modello STUDENTE PUBBLICO -- (dato in lettura per utenti)
 class StudentPublic(StudentBase):
-    student_id: int
+    student_id: uuid.UUID
