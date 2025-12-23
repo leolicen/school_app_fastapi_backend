@@ -19,6 +19,7 @@ class StudentBase(SQLModel):
     course_id: uuid.UUID
     phone: Annotated[str | None, Field(max_length=10)] 
     address: Annotated[str | None, Field(max_length=50)]
+    
 
 
 # -- modello STUDENTE IN DB -- (TABELLA)
@@ -28,7 +29,8 @@ class Student(StudentBase, table=True):
     hashed_password: Annotated[str, Field(max_length=255, index=True)]
     email: Annotated[EmailStr, Field(max_length=50,unique=True, index=True)]
     course_id: Annotated[uuid.UUID, Field(foreign_key="course.course_id")]
-    phone: Annotated[str | None, Field(max_length=10)] 
+    phone: Annotated[str | None, Field(max_length=10)]
+    is_active: Annotated[bool, Field(default=True)]
     
     course: Course = Relationship(back_populates="students")
     
@@ -44,3 +46,4 @@ class StudentCreate(StudentBase):
 # -- modello STUDENTE PUBBLICO -- (dato in lettura per utenti)
 class StudentPublic(StudentBase):
     student_id: uuid.UUID
+    is_active: bool
