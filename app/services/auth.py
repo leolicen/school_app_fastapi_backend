@@ -1,7 +1,12 @@
+from datetime import datetime, timedelta, timezone
 from pwdlib import PasswordHash
 from pydantic import EmailStr
 from sqlmodel import Session, select
 from ..models.student import Student
+import uuid
+from ..models.token import TokenData, Token
+import jwt
+from ..core.settings import settings
 
 class AuthService():
     def __init__(self, session: Session):
@@ -19,15 +24,21 @@ class AuthService():
         return self.pwd_hash.hash(password)
 
 
-    # -- metodo GET USER -- verifica l'esistenza di un utente con quella email
-    def get_student_in_db(self, email: EmailStr) -> Student | None:
+    # -- metodo GET STUDENT BY EMAIL -- verifica l'esistenza di un utente tramite email
+    def get_student_by_email(self, email: EmailStr) -> Student | None:
         return self._db.exec(
             select(Student).where(Student.email == email)
         ).first()
         # first() restituisce già None se non trova nulla
-       
         
-    # -- funzione AUTENTICAZIONE UTENTE --
+    # -- metodo GET STUDENT BY ID -- verifica l'esistenza di un utente tramite id
+    def get_student_by_id(self, id: uuid.UUID) -> Student | None:
+        return self._db.exec(
+            select(Student).where(Student.student_id == id)
+        ).first()
+       
+       
+    # -- funzione AUTENTICAZIONE UTENTE -- in fase di LOGIN
     def authenticate_student(self, email: EmailStr, password: str) -> Student | False:
         student = self.get_student_in_db(email)
         if not student:
@@ -35,4 +46,20 @@ class AuthService():
         if not self.verify_password(password, student.hashed_password):
             return False
         return student
+    
+    # -- funzione CREAZIONE TOKEN -- crea token con id studente e valore exp
+    def create_access_token(id: uuid.UUID, expires_delta: timedelta | None = None) -> str:
+            # calcolo expires_delta
+            if expires_delta:
+                expire = datetime.now(timezone.utc) + expires_delta
+            else:
+                expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+            # payload (1/3 elementi del JWT con header e signature) formato da claim "sub" (subject) con valore id univoco + claim "exp"
+            payload = {
+                "sub": str(id),
+                "exp": expire
+            }
+            # secret_key e algorithm presi da classe settings che legge variabili d'ambiente da .env
+            encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
             
+            return encoded_jwt
