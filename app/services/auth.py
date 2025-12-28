@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 from pwdlib import PasswordHash
 from pydantic import EmailStr
 from sqlmodel import Session, select
@@ -7,12 +8,15 @@ import uuid
 from ..models.token import TokenData, Token
 import jwt
 from ..core.settings import settings
+from fastapi import Depends, HTTPException
+from jwt.exceptions import InvalidTokenError
 
 class AuthService():
     def __init__(self, session: Session):
         self._db = session
         # istanza di PasswordHash con Argon2 come hasher
         self._pwd_hash = PasswordHash.recommended()
+       
     
 
     # metodo di MATCH tra PWD IN CHIARO (input utente) e PWD HASHATA salvata nel DB
@@ -40,7 +44,7 @@ class AuthService():
        
     # -- funzione AUTENTICAZIONE UTENTE -- in fase di LOGIN
     def authenticate_student(self, email: EmailStr, password: str) -> Student | False:
-        student = self.get_student_in_db(email)
+        student = self.get_student_by_email(email)
         if not student:
             return False 
         if not self.verify_password(password, student.hashed_password):
@@ -63,3 +67,7 @@ class AuthService():
             encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
             
             return encoded_jwt
+    
+    
+    # -- funzione GET CURRENT USER -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint
+    #async def get_current_user(self, token: Annotated[str, Depends()]):
