@@ -8,4 +8,10 @@ class Token(BaseModel):
 
 # -- modello TOKEN DATA -- estratto dal token decodificato, usato in get_student_by_id
 class TokenData(BaseModel):
-    user_id: uuid.UUID | None = None
+    # l'id utente preso dal token viene restituito come stringa
+    user_id: str | None = None
+    # definisco metodo che trasforma l'id, se presente, da str a UUID
+    def get_uuid(self) -> uuid.UUID | None:
+        if self.user_id:
+            return uuid.UUID(self.user_id)
+        return None
