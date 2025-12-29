@@ -7,9 +7,8 @@ from sqlalchemy import Column
 
 if TYPE_CHECKING:
     from .course import Course
-    from .company import Company
     from .internship_agreement import InternshipAgreement
-    from .internship_entry import InternshipEntry
+
 
 # -- modello STUDENTE BASE -- (campi comuni a tutti i modelli)
 class StudentBase(SQLModel):
