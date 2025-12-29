@@ -9,8 +9,7 @@ from ..models.token import TokenData, Token
 import jwt
 from ..core.settings import settings
 from fastapi import Depends, HTTPException, status
-from jwt.exceptions import InvalidTokenError
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
@@ -111,4 +110,20 @@ class AuthService():
                 detail="Inactive user"
             )
         return current_student
+    
+    
+    # -- funzione LOGIN -- login valido per studenti ATTIVI E INATTIVI (accesso alla app), i singoli endpoint controlleranno invece che sia anche attivo
+    def login_for_access_token(self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+        # autentico lo studente tramite email e password
+        student = self.authenticate_student(form_data.username, form_data.password)
+        if not student:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        # se è presente uno studente con quelle credenziali, creo un token con il suo id
+        access_token = self.create_access_token(student.student_id, settings.access_token_expire_minutes)
+        
+        return Token(access_token=access_token, token_type="bearer")
             
