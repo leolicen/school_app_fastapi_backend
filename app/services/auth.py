@@ -3,13 +3,17 @@ from typing import Annotated
 from pwdlib import PasswordHash
 from pydantic import EmailStr
 from sqlmodel import Session, select
-from ..models.student import Student
+from ..models.student import Student, StudentPublic
 import uuid
 from ..models.token import TokenData, Token
 import jwt
 from ..core.settings import settings
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
+from fastapi.security import OAuth2PasswordBearer
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 class AuthService():
     def __init__(self, session: Session):
@@ -29,6 +33,7 @@ class AuthService():
 
 
     # -- metodo GET STUDENT BY EMAIL -- verifica l'esistenza di un utente tramite email
+    # restituisce Student (tabella) perché authenticate_student ha bisogno di accedere al campo hashed_password
     def get_student_by_email(self, email: EmailStr) -> Student | None:
         return self._db.exec(
             select(Student).where(Student.email == email)
@@ -36,13 +41,15 @@ class AuthService():
         # first() restituisce già None se non trova nulla
         
     # -- metodo GET STUDENT BY ID -- verifica l'esistenza di un utente tramite id
-    def get_student_by_id(self, id: uuid.UUID) -> Student | None:
+    # restituisce StudentPublic perché in get_current_student, dove è usata, non serve e non è sicuro accedere a hashed_password
+    def get_student_by_id(self, id: uuid.UUID) -> StudentPublic | None:
         return self._db.exec(
             select(Student).where(Student.student_id == id)
         ).first()
        
        
-    # -- funzione AUTENTICAZIONE UTENTE -- in fase di LOGIN
+    # -- funzione AUTENTICAZIONE STUDENTE -- in fase di LOGIN
+    # restituisce Student (tabella) perché dentro la funzione serve accedere a hashed_password e in login, dove verrà chiamata, verrà restituito solo il Token
     def authenticate_student(self, email: EmailStr, password: str) -> Student | False:
         student = self.get_student_by_email(email)
         if not student:
@@ -69,5 +76,39 @@ class AuthService():
             return encoded_jwt
     
     
-    # -- funzione GET CURRENT USER -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint
-    #async def get_current_user(self, token: Annotated[str, Depends()]):
+    # -- funzione GET CURRENT STUDENT -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint
+    # si usa ASYNC perché lo richiede la dependency injection
+    async def get_current_student(self, token: Annotated[str, Depends(oauth2_scheme)]) -> StudentPublic:
+        # creo HTTP exception in caso di errore di validazione token
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+        try:
+            # decodifico il token ricevuto
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            # estraggo il claim "sub" (contenente l'id)
+            student_id = payload.get("sub")
+            if student_id is None:
+                raise credentials_exception
+            # creo un oggetto TokenData per maggior controllo
+            token_data = TokenData(user_id=student_id)
+        except (jwt.PyJWTError, ValueError):
+            raise credentials_exception
+        # controllo che ci sia uno studente con l'id estratto
+        student = self.get_student_by_id(id=token_data.user_id)
+        if student is None:
+            raise credentials_exception
+        # se sì, lo restituisco
+        return student
+    
+    # -- funzione GET CURRENT ACTIVE USER -- aggiunge controllo per flag is_active => restituisce lo studente SOLO SE È ATTIVO
+    async def get_current_active_student(current_student: Annotated[StudentPublic, Depends(get_current_student)]) -> StudentPublic:
+        if not current_student.is_active:
+            raise HTTPException(
+                status_code=400,
+                detail="Inactive user"
+            )
+        return current_student
+            
