@@ -1,6 +1,9 @@
 from typing import TYPE_CHECKING, Annotated, List, Optional
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date
+import uuid
+from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
+from sqlalchemy import Column
 
 if TYPE_CHECKING:
     from .student import Student
@@ -8,9 +11,8 @@ if TYPE_CHECKING:
 # -- modello COURSE -- modello unico => tabella (con id) & modello 'Public' per utenti app (anche qui serve id)
 
 class Course(SQLModel, table=True):
-    # default=None con tipo int | None permette a SQLModel di non richiedere il valore all’inserimento (lo lascia al DB)
-    # L’auto-increment è abilitato automaticamente quando la colonna è intera, chiave primaria e ha default None
-    course_id: Annotated[int | None, Field(default=None, primary_key=True)]
+    # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
+    course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
     # Field(index=True) tells SQLModel that it should create a SQL index for this column
     name: Annotated[str, Field(max_length=100, index=True, unique=True)]
     # full_name: Annotated[str, Field(max_length=150)]
@@ -29,3 +31,12 @@ class Course(SQLModel, table=True):
     # permette da Course di accedere alla lista di studenti collegati al corso
     students: List["Student"] = Relationship(back_populates="course")
 
+
+
+
+
+
+
+# default=None con tipo int | None permette a SQLModel di non richiedere il valore all’inserimento (lo lascia al DB)
+    # L’auto-increment è abilitato automaticamente quando la colonna è intera, chiave primaria e ha default None
+    # course_id: Annotated[int | None, Field(default=None, primary_key=True)]

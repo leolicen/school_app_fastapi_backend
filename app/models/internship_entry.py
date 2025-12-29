@@ -3,6 +3,9 @@ from pydantic import field_validator
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, time
 from enum import Enum
+import uuid
+from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
+from sqlalchemy import Column
 
 if TYPE_CHECKING:
     from .internship_agreement import InternshipAgreement
@@ -30,7 +33,7 @@ class InternshipEntryBase(SQLModel):
     
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
 class InternshipEntry(InternshipEntryBase, table=True):
-    entry_id: Annotated[int | None, Field(default=None, primary_key=True)]
+    entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     agreement_id: Annotated[int, Field(foreign_key="internshipagreement.agreement_id", index=True)]
     
     internship_agreement: InternshipAgreement = Relationship(back_populates="internship_entries")
@@ -39,9 +42,9 @@ class InternshipEntry(InternshipEntryBase, table=True):
 
 # -- MODELLO CREA INTERNSHIP ENTRY -- (input utente)
 class InternshipEntryCreate(InternshipEntryBase):
-    agreement_id: int 
+    agreement_id: uuid.UUID 
     
 # -- MODELLO INTERNSHIP ENTRY PUBBLICO -- (lettura utenti in app)
 class InternshipEntryPublic(InternshipEntryBase):
-    entry_id: int
+    entry_id: uuid.UUID
     
