@@ -3,6 +3,9 @@ from sqlmodel import Relationship, SQLModel, Field
 from datetime import date
 from decimal import Decimal
 from sqlalchemy import UniqueConstraint
+import uuid
+from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
+from sqlalchemy import Column
 
 
 if TYPE_CHECKING:
@@ -19,7 +22,7 @@ class InternshipAgreementBase(SQLModel):
 
 
 class InternshipAgreement(InternshipAgreementBase, table=True):
-    agreement_id: Annotated[int | None, Field(default=None, primary_key=True)]
+    agreement_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     student_id: Annotated[int, Field(foreign_key="student.student_id", index=True)]
     company_id: Annotated[int, Field(foreign_key="company.company_id")]
     
@@ -38,4 +41,4 @@ class InternshipAgreement(InternshipAgreementBase, table=True):
     
 
 class InternshipAgreementPublic(InternshipAgreementBase):
-    agreement_id: int 
+    agreement_id: uuid.UUID
