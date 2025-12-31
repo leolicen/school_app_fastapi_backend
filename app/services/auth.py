@@ -11,8 +11,8 @@ from ..core.settings import settings
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+# definisco istanza di OAuth2PasswordBearer che richiedel'url dell'endpoint che restituisce il token
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 class AuthService():
     def __init__(self, session: Session):
@@ -75,7 +75,7 @@ class AuthService():
             return encoded_jwt
     
     
-    # -- funzione GET CURRENT STUDENT -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint
+    # -- funzione GET CURRENT STUDENT -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint (in questo caso sarà get_current_active_student)
     # si usa ASYNC perché lo richiede la dependency injection
     async def get_current_student(self, token: Annotated[str, Depends(oauth2_scheme)]) -> StudentPublic:
         # creo HTTP exception in caso di errore di validazione token
