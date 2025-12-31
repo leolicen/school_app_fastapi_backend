@@ -3,7 +3,7 @@ from typing import Annotated
 from pwdlib import PasswordHash
 from pydantic import EmailStr
 from sqlmodel import Session, select
-from ..models.student import Student, StudentPublic
+from ..models.student import Student, StudentCreate, StudentPublic
 import uuid
 from ..models.token import TokenData, Token
 import jwt
@@ -113,7 +113,7 @@ class AuthService():
     
     
     # -- funzione LOGIN -- login valido per studenti ATTIVI E INATTIVI (accesso alla app), i singoli endpoint controlleranno invece che sia anche attivo
-    def login_for_access_token(self, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> Token:
         # autentico lo studente tramite email e password
         student = self.authenticate_student(form_data.username, form_data.password)
         if not student:
@@ -126,4 +126,58 @@ class AuthService():
         access_token = self.create_access_token(student.student_id, settings.access_token_expire_minutes)
         
         return Token(access_token=access_token, token_type="bearer")
+    
+    
+    # -- funzione REGISTRAZIONE STUDENTE -- crea un nuovo studente
+    def register_student(self, student: StudentCreate) -> StudentPublic:
+        try:
+            # controllo che non esista già un account con l'email fornita
+            if self._auth_service.get_student_by_email(student.email):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email already registered"
+                )
+            
+            # se non esiste già un account, procedo a hashare la password fornita 
+            hashed_password = self._auth_service.get_password_hash(student.password)
+            
+            # creo un nuovo studente di tipo Student(modello DB)
+            # con model_dump creo un dizionario con i campi della variabile student: StudentCreate
+            # '**' snocciola le chiavi del dizionario in singole proprietà
+            # 'exclude' permette di escludere dal dizionario il campo "password" che contiene la password in chiaro (sostituita poi da quella hashata)
+            new_student = Student(
+                **student.model_dump(exclude={"password"}),
+                hashed_password=hashed_password
+            )
+            # aggiungo il nuovo studente al DB
+            self._db.add(new_student)
+            self._db.commit()
+            self._db.refresh(new_student)
+            
+            # converto lo studente di tipo Student (modello DB) in StudentPublic (modello response utente senza hashed_password)
+            return StudentPublic.model_validate(new_student)
+            
+            
+        except HTTPException:
+            raise
+        except Exception:
+            self._db.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail="Internal Server Error"
+            )
+            
+    # -- funzione REGISTRAZIONE & LOGIN unificate --
+    def register_and_login(self, student: StudentCreate) -> Token:
+        # creo un nuovo studente
+        new_student = self.register_student(student)
+        # creo istanza OAuth2PasswordRequestForm 
+        form_data = OAuth2PasswordRequestForm(
+            # email nuovo studente
+            username=new_student.email,
+            # password in chiaro prima dell'hashing
+            password=student.password
+        )
+        # restituisco token per accesso
+        return self.login_for_access_token(form_data)
             
