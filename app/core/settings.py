@@ -1,4 +1,6 @@
 from dotenv import load_dotenv
+from fastapi.security import OAuth2PasswordBearer
+from pwdlib import PasswordHash
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,11 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    
+    # istanza di PasswordHash con Argon2 come hasher
+    pwd_hash = PasswordHash.recommended()
+    # definisco istanza di OAuth2PasswordBearer che richiede l'url dell'endpoint che restituisce il token
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
     
     
     # classe annidata che dice a Pydantic come comportarsi (senza Pydantic leggerebbe solo variabili d'ambiente di sistema)
