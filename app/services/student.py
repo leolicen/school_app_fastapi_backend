@@ -22,7 +22,7 @@ class StudentService():
         
     
     # --  GET STUDENT BY EMAIL -- verifica l'esistenza di un utente tramite email
-    # restituisce Student (tabella) perché AuthService.authenticate_student() ha bisogno di accedere al campo hashed_password
+    # restituisce Student (tabella) perché authenticate_student() ha bisogno di accedere al campo hashed_password
     def get_student_by_email(self, email: EmailStr) -> Student | None:
         return self._db.exec(
             select(Student).where(Student.email == email)
@@ -65,12 +65,17 @@ class StudentService():
     
     
     
-       # -- funzione GET CURRENT STUDENT -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint (in questo caso sarà get_current_active_student)
-    # si usa ASYNC perché lo richiede la dependency injection
-    async def get_current_student(self, token: str) -> StudentPublic:
+    # -- funzione GET CURRENT STUDENT -- recupera lo studente a partire dal token => dipendenza iniettata in ogni endpoint (in questo caso sarà get_current_active_student)
+    def get_current_student(self, token: str) -> StudentPublic:
+        # valido il token e ricevo l'id estratto in TokenData
         token_data = AuthService.validate_token(token)
-        # controllo che ci sia uno studente con l'id estratto
-        student = self.get_student_by_id(id=token_data.user_id)
+        # converto l'id (che è una stringa) in UUID
+        student_id = token_data.get_uuid()
+        # ulteriore controllo (già presente in validate_token) per sicurezza
+        if student_id is None:
+            raise self.invalid_token_exception
+        # controllo che ci sia uno studente con l'id estratto passando l'id convertito a UUID
+        student = self.get_student_by_id(id=student_id) #  student = self.get_student_by_id(id=token_data.get_uuid())
         if student is None:
             raise self.invalid_token_exception
         # se sì, lo restituisco
