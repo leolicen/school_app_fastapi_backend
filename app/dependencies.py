@@ -12,8 +12,9 @@ def get_student_service(session: SessionDep):
 
 
 
- # --  GET CURRENT ACTIVE USER DEPENDENCY -- dipendenza che autentica tramite token l'utente nei singoli endpoint protetti
- # (aggiunge controllo per flag is_active => restituisce lo studente SOLO SE È ATTIVO)
+# --  GET CURRENT ACTIVE USER DEPENDENCY -- dipendenza che autentica tramite token l'utente nei singoli endpoint protetti
+# (aggiunge controllo per flag is_active => restituisce lo studente SOLO SE È ATTIVO)
+# si usa ASYNC perché lo richiede la dependency injection (?)
 async def get_current_active_student(
     token: Annotated[str, Depends(settings.oauth2_scheme)],
     student_service: StudentService = Depends(get_student_service)

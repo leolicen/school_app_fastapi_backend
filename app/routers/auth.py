@@ -23,7 +23,7 @@ def login(
     ):
     return student_service.login_for_access_token(form_data)
 
-# -- endpoint REGISTRAZIONE studenti --
+# -- endpoint REGISTRAZIONE studenti -- registrazione + login automatico
 @router.post("/register", response_model=Token)
 def register_student(
     student: StudentCreate,
