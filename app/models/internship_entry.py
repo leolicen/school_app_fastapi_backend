@@ -1,4 +1,4 @@
-from typing import Annotated, TYPE_CHECKING, List
+from typing import Annotated, TYPE_CHECKING
 from pydantic import field_validator
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, time
@@ -23,6 +23,7 @@ class InternshipEntryBase(SQLModel):
     end_time: time 
     
     @field_validator('end_time')
+    @classmethod
     def end_after_start(cls, v, values):
         if 'start_time' in values and v <= values['start_time']:
             raise ValueError('end_time deve essere successiva a start_time')
