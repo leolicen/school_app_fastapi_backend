@@ -21,7 +21,7 @@ class InternshipAgreementBase(SQLModel):
     is_active: bool 
 
 
-class InternshipAgreement(InternshipAgreementBase, table=True):
+class InternshipAgreementInDB(InternshipAgreementBase, table=True):
     agreement_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     student_id: Annotated[int, Field(foreign_key="student.student_id", index=True)]
     company_id: Annotated[int, Field(foreign_key="company.company_id")]
