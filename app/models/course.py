@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 # -- modello COURSE -- modello unico => tabella (con id) & modello 'Public' per utenti app (anche qui serve id)
 
-class Course(SQLModel, table=True):
+class CourseInDB(SQLModel, table=True):
     # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
     course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
     # Field(index=True) tells SQLModel that it should create a SQL index for this column

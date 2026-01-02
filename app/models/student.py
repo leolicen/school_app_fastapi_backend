@@ -23,7 +23,7 @@ class StudentBase(SQLModel):
 
 # -- modello STUDENTE IN DB -- (TABELLA)
 # contiene id (generato automaticamente) e password hashata
-class Student(StudentBase, table=True):
+class StudentInDB(StudentBase, table=True):
     student_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     hashed_password: Annotated[str, Field(max_length=255, index=True)]
     email: Annotated[EmailStr, Field(max_length=50,unique=True, index=True)]
@@ -46,3 +46,12 @@ class StudentCreate(StudentBase):
 class StudentPublic(StudentBase):
     student_id: uuid.UUID
     is_active: bool
+
+
+# modello AGGIORNA STUDENTE -- 
+class StudentUpdate(SQLModel):
+    name: Annotated[str | None, Field(max_length=40)]
+    surname: Annotated[str | None, Field(max_length=40)]
+    email: Annotated[EmailStr | None, Field(max_length=50)]
+    phone: Annotated[str | None, Field(max_length=10)] 
+    address: Annotated[str | None, Field(max_length=50)]

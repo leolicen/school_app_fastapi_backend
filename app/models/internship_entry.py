@@ -32,7 +32,7 @@ class InternshipEntryBase(SQLModel):
     description: Annotated[str, Field(max_length=150)]
     
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
-class InternshipEntry(InternshipEntryBase, table=True):
+class InternshipEntryInDB(InternshipEntryBase, table=True):
     entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     agreement_id: Annotated[int, Field(foreign_key="internshipagreement.agreement_id", index=True)]
     
