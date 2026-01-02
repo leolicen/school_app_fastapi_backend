@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING, Annotated, List
 from sqlmodel import SQLModel, Field, Relationship
-from pydantic import EmailStr # tipo di stringa Pydantic per validazione email
+from pydantic import EmailStr, field_validator # tipo di stringa Pydantic per validazione email
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
+from ..utils.validators import strong_password_validator
 
 if TYPE_CHECKING:
     from .course import Course
@@ -40,7 +41,11 @@ class StudentInDB(StudentBase, table=True):
 # password con min 8 caratteri per eventuali bypass della UI Flutter
 class StudentCreate(StudentBase):
     password: Annotated[str, Field(max_length=50, min_length=8)]
-
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return strong_password_validator(v)
 
 # -- modello STUDENTE PUBBLICO -- (dato in lettura per utenti)
 class StudentPublic(StudentBase):
