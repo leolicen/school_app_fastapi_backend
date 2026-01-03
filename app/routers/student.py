@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from ..models.student import StudentPublic, StudentUpdate
 from typing import Annotated
 from ..dependencies import get_current_student, get_current_active_student, get_student_service
 from ..services.student import StudentService
+from ..models.password import ChangePassword
 
 # definisco router /auth 
 router = APIRouter(
@@ -33,4 +34,15 @@ def update_student(
 
 # DELETE_STUDENT
 
-# CHANGE_PASSWORD
+# -- CHANGE_PASSWORD -- (interno alla app => account studente)
+# endpoint PROTETTO
+# dipende da GET_CURRENT_STUDENT => QUALSIASI STUDENTE (attivo e non) => tutti possono leggere le proprie info ("/me") e modificare password per accedere alla app
+@router.post("/change-password", status_code=status.HTTP_200_OK, response_model=dict[str, str])
+def change_password(
+    current_student: Annotated[StudentPublic, Depends(get_current_student)],
+    student_service: Annotated[StudentService, Depends(get_student_service)],
+    pwd_data: ChangePassword
+):
+    student_service.change_password(current_student,pwd_data)
+    
+    return {"detail: Password updated successfully"}
