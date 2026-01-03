@@ -7,6 +7,7 @@ from app.core import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
 from ..models.token import Token
+from ..models.password import ChangePassword
 
 
 
@@ -144,3 +145,22 @@ class StudentService():
         self._db.refresh(student_in_db)
         
         return StudentPublic.model_validate(student_in_db)
+    
+    
+    # -- CAMBIO PASSWORD -- 
+    def change_password(self, current_student: StudentPublic, pwd_change: ChangePassword) -> None:
+        # recupero studente in db
+        student_in_db = self.get_student_by_email(current_student.email)
+        if not student_in_db:
+            raise HTTPException(status_code=404, detail="Student not found")
+        # controllo che la pwd attuale fornita sia uguale a quella salvata nel db
+        if not AuthService.verify_password(pwd_change.current_password, student_in_db.hashed_password):
+            raise HTTPException(status_code=400, detail="Current password is not correct")
+        # creo hash della nuova password
+        new_pwd_hash = AuthService.get_password_hash(pwd_change.new_pwd)
+        # sostituisco il vecchio hash con il nuovo
+        student_in_db.hashed_password = new_pwd_hash
+        self._db.commit()
+        self._db.refresh(student_in_db)
+      
+    
