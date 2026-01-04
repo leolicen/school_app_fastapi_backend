@@ -45,4 +45,4 @@ def change_password(
 ):
     student_service.change_password(current_student,pwd_data)
     
-    return {"detail: Password updated successfully"}
+    return {"detail": "Password updated successfully"}

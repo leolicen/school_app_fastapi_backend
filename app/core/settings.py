@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +34,10 @@ class Settings(BaseSettings):
     pwd_hash = PasswordHash.recommended()
     # definisco istanza di OAuth2PasswordBearer che richiede l'url dell'endpoint che restituisce il token
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+    
+    resend_api_key: str
+    resend_from: str
+    pwd_reset_url: str # indirizzo pagina app Flutter per reset password (da implementare con go router)
     
     
     # classe annidata che dice a Pydantic come comportarsi (senza Pydantic leggerebbe solo variabili d'ambiente di sistema)
