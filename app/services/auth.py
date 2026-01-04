@@ -1,9 +1,14 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from ..models.auth import TokenData
+from ..models.auth import TokenData, ResetToken
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status
+from pydantic import EmailStr
+from ..utils.validators import normalize_email
+from sqlmodel import delete, Session
+import secrets, hashlib
+from ..services.student import StudentService
 
 
 
@@ -64,6 +69,42 @@ class AuthService():
         
         except (jwt.PyJWTError, ValueError):
             raise invalid_token_exception
+        
+        
+    @staticmethod
+    def create_reset_token(
+        email: EmailStr,
+        student_service: StudentService,
+        session: Session
+        ) -> str:
+        # controllo internamente che l'email corrisponda a un utente registrato
+        student_in_db = student_service.get_student_by_email(email)
+        # se non esiste loggo errore internamente e esco 
+        if not student_in_db:
+            raise ValueError("Email not registered") # solo interno
+        
+        # se esiste, normalizzo l'email per evitare errori come abc@xyz.COM vs. abc@xyz.com
+        normalized_email = normalize_email(email)
+        # elimino eventuale reset token già esistente
+        delete_previuos_tokens = delete(ResetToken).where(ResetToken.email == normalized_email)
+        session.exec(delete_previuos_tokens)
+        session.commit()
+        
+        # creo un nuovo token
+        raw_token = secrets.token_urlsafe(32)
+        # hasho il token
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        # creo un nuovo ResetToken con token hashato associato all'email
+        reset_token = ResetToken(
+            email=normalized_email,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        session.add(reset_token)
+        session.commit()
+        
+        return raw_token
+    
     
     
  
