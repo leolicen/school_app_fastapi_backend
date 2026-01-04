@@ -4,7 +4,7 @@ from pydantic import EmailStr, field_validator # tipo di stringa Pydantic per va
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
-from ..utils.validators import strong_password_validator
+from ..utils.validators import strong_password_validator, normalize_email
 
 if TYPE_CHECKING:
     from .course import Course
@@ -19,6 +19,12 @@ class StudentBase(SQLModel):
     course_id: uuid.UUID
     phone: Annotated[str | None, Field(max_length=10)] 
     address: Annotated[str | None, Field(max_length=50)]
+    
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return normalize_email(v)
+    
     
 
 

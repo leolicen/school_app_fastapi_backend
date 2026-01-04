@@ -19,3 +19,8 @@ def passwords_match_validator(self: Self) -> Self:
     return self
 
 
+def normalize_email(v: str) -> str:
+    if isinstance(v, str):
+        return v.lower().strip()
+
+
