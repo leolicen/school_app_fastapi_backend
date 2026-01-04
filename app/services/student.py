@@ -2,7 +2,7 @@ import uuid
 from fastapi import HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
@@ -11,6 +11,7 @@ from ..models.password import ChangePassword
 import secrets, hashlib
 from datetime import datetime, timedelta, timezone
 import resend
+from ..utils.validators import normalize_email
 
 
 
@@ -29,8 +30,9 @@ class StudentService():
     # verifica l'esistenza di un utente tramite email
     # restituisce Student (tabella) perché authenticate_student() ha bisogno di accedere al campo hashed_password
     def get_student_by_email(self, email: EmailStr) -> StudentInDB | None:
+        normalized_email = normalize_email(email)
         return self._db.exec(
-            select(StudentInDB).where(StudentInDB.email == email)
+            select(StudentInDB).where(StudentInDB.email == normalized_email)
         ).first()
         # first() restituisce già None se non trova nulla
         
@@ -173,13 +175,21 @@ class StudentService():
         # se non esiste loggo errore internamente e esco 
         if not student_in_db:
             raise ValueError("Email not registered") # solo interno
-        # se esiste, creo il token
+        
+        # se esiste, normalizzo l'email per evitare errori come abc@xyz.COM vs. abc@xyz.com
+        normalized_email = normalize_email(email)
+        # elimino eventuale reset token già esistente
+        delete_previuos_tokens = delete(ResetToken).where(ResetToken.email == normalized_email)
+        self._db.exec(delete_previuos_tokens)
+        self._db.commit()
+        
+        # creo un nuovo token
         raw_token = secrets.token_urlsafe(32)
         # hasho il token
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
         # creo un nuovo ResetToken con token hashato associato all'email
         reset_token = ResetToken(
-            email=email,
+            email=normalized_email,
             token_hash=token_hash,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
         )

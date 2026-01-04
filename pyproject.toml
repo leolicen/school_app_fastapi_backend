@@ -11,6 +11,7 @@ dependencies = [
     "pyjwt>=2.10.1",
     "python-dotenv>=1.2.1",
     "resend>=2.19.0",
+    "slowapi>=0.1.9",
     "sqlmodel>=0.0.27",
     "uvicorn>=0.38.0",
 ]
