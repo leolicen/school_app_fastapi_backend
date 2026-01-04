@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from ..models.token import TokenData
+from ..models.auth import TokenData
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status

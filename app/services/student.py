@@ -1,13 +1,16 @@
 import uuid
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select
-from app.core import settings
+from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
-from ..models.token import Token
+from ..models.auth import Token, ResetToken
 from ..models.password import ChangePassword
+import secrets, hashlib
+from datetime import datetime, timedelta, timezone
+import resend
 
 
 
@@ -162,5 +165,69 @@ class StudentService():
         student_in_db.hashed_password = new_pwd_hash
         self._db.commit()
         self._db.refresh(student_in_db)
-      
+        
+    
+    def create_reset_token(self, email: EmailStr) -> str:
+        # controllo internamente che l'email corrisponda a un utente registrato
+        student_in_db = self.get_student_by_email(email)
+        # se non esiste loggo errore internamente e esco 
+        if not student_in_db:
+            raise ValueError("Email not registered") # solo interno
+        # se esiste, creo il token
+        raw_token = secrets.token_urlsafe(32)
+        # hasho il token
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        # creo un nuovo ResetToken con token hashato associato all'email
+        reset_token = ResetToken(
+            email=email,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        self._db.add(reset_token)
+        self._db.commit()
+        
+        return raw_token
+    
+   
+    
+    
+    def send_reset_email(self, email: str, reset_token: str) -> resend.Emails.SendResponse | None:
+        # controllo che esista l'api key di resend
+        if not settings.resend_api_key:
+            print(f"Resend API KEY not found. Unable to send email to {email}.")
+            return
+            
+        # compongo l'url endpoint per reset pwd aggiungendo il ResetToken
+        reset_url = f"{settings.pwd_reset_url}?token={reset_token}"
+        # definisco i parametri dell'email da inviare
+        params: resend.Emails.SendParams = {
+            "from": f"Acme <{settings.resend_from}>",
+            "to": [f"{email}"],
+            "subject": "Reset password",
+            "html": f"""<h2>Reset password</h2>
+            <p>Clicca <a href="{reset_url}">qui</a> entro 15 minuti.</p>
+            """
+        }
+        
+        try:
+            reset_email: resend.Emails.SendResponse = resend.Emails.send(params)
+            print(f"Reset email sent successfully to {email}")
+            return reset_email
+        except Exception as e:
+            print(f"Failed to send reset email to {email}: {str(e)}")
+            return None
+    
+       
+    
+    # -- RICHIESTA RESET PASSWORD --
+    def request_password_reset(self, student_email: EmailStr, background_tasks: BackgroundTasks) -> dict[str, str]:
+            try:
+                # creo token monouso (se email non valida lancia ValueError)
+                token = self.create_reset_token(student_email)
+                # provo a inviare l'email
+                background_tasks.add_task(self.send_reset_email, student_email, token)
+            except ValueError:
+                pass 
+            
+            return {"detail": "If email is valid, request was sent"}
     
