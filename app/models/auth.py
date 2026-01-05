@@ -4,6 +4,7 @@ from sqlalchemy import BINARY, Column
 from sqlmodel import SQLModel
 from typing import Annotated
 from datetime import datetime
+from .password import PasswordMatchModel
 
 # -- TOKEN PUBLIC -- quello che viene restituito all'utente
 class Token(BaseModel):
@@ -26,6 +27,11 @@ class ResetToken(SQLModel, table=True):
     email: EmailStr
     token_hash: str
     expires_at: datetime
+    
+# -- RESET PWD DATA -- dati inviati a endpoint reset-confirm (raw token + new_pwd)
+class ResetPwdData(BaseModel):
+    raw_reset_token: str
+    new_pwd_data: PasswordMatchModel
     
 # -- RICHIESTA RESET PWD -- contiene l'email di chi fa richiesta
 class ResetPasswordRequest(BaseModel):

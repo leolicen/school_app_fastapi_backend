@@ -7,8 +7,9 @@ from fastapi import HTTPException, status
 from pydantic import EmailStr
 from ..utils.validators import normalize_email
 from sqlmodel import delete, Session
-import secrets, hashlib
+import secrets
 from ..services.student import StudentService
+from ..utils.hash_reset_token import hash_reset_token
 
 
 
@@ -70,6 +71,7 @@ class AuthService():
         except (jwt.PyJWTError, ValueError):
             raise invalid_token_exception
         
+ 
         
     @staticmethod
     def create_reset_token(
@@ -93,7 +95,7 @@ class AuthService():
         # creo un nuovo token
         raw_token = secrets.token_urlsafe(32)
         # hasho il token
-        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        token_hash = hash_reset_token(raw_token)
         # creo un nuovo ResetToken con token hashato associato all'email
         reset_token = ResetToken(
             email=normalized_email,

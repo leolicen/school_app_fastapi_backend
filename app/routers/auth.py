@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
-from ..models.auth import Token, ResetPasswordRequest
+from ..models.auth import Token, ResetPasswordRequest, ResetPwdData
 from ..dependencies import get_student_service
 from ..services.student import StudentService
 from ..models.student import StudentCreate
@@ -16,8 +16,8 @@ router = APIRouter(
    
 )
 
-# -- LOGIN studenti -- 
-# endoint PUBBLICO
+# -- LOGIN -- 
+# endoint NON PROTETTO
 @router.post("/login", response_model=Token)
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -25,8 +25,9 @@ def login(
     ):
     return student_service.login_for_access_token(form_data)
 
-# -- REGISTRAZIONE studenti -- registrazione + login automatico
-# endpoint PUBBLICO
+
+# -- REGISTRAZIONE -- (registrazione + login automatico)
+# endpoint NON PROTETTO
 @router.post("/register", response_model=Token)
 @limiter.limit("5/hour")
 def register_student(
@@ -37,6 +38,7 @@ def register_student(
 
 
 # -- PASSWORD RESET REQUEST --
+# endpoint NON PROTETTO
 @router.post("/password/reset-request", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def request_password_reset(
@@ -48,11 +50,13 @@ def request_password_reset(
     
 
 
-
-
-
-
 # -- PASSWORD RESET --
-@router.post("/password/reset")
-def reset_password():
-    pass
+# endpoint NON PROTETTO
+# riceve raw token e new_pwd dal form di reset password
+@router.post("/password/reset-confirm", response_model=dict[str, str])
+@limiter.limit("5/15minute")
+def reset_password(
+    reset_pwd_data: ResetPwdData, # unico body param che ingloba token e new_pwd
+    student_service: StudentService = Depends(get_student_service)
+):
+    return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
