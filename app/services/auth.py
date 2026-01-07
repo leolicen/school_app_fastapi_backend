@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from ..models.auth import TokenData, ResetTokenInDB
+from ..models.auth import TokenData, ResetTokenInDB, RefreshTokenInDB
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status
@@ -106,6 +106,26 @@ class AuthService():
         session.commit()
         
         return raw_token
+    
+    
+    @staticmethod 
+    def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
+        
+        # creo token raw
+        raw_refresh_token = str(uuid.uuid4())
+        # creo hash token
+        hashed_refresh_token = AuthService.get_password_hash(raw_refresh_token)
+        # creo istanza token in db
+        refresh_token_in_db = RefreshTokenInDB(
+            student_id=student_id,
+            token_hash=hashed_refresh_token
+        )
+        
+        session.add(refresh_token_in_db)
+        session.commit()
+        session.refresh(refresh_token_in_db)
+        
+        return raw_refresh_token
     
     
     
