@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Relationship
 from typing import Annotated, TYPE_CHECKING
 from datetime import datetime, timezone, timedelta
 from .password import PasswordMatchModel
+from ..core.settings import settings
 
 if TYPE_CHECKING:
     from .student import StudentInDB
@@ -50,7 +51,7 @@ class RefreshTokenInDB(SQLModel, table=True):
     student_id: Annotated[uuid.UUID, Field(foreign_key="studentindb.student_id")]
     token_hash: str
     created_at: Annotated[datetime, Field(sa_column=Column(server_default=func.now(), nullable=False))]
-    expires_at: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))]
+    expires_at: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days))]
     revoked_at: Annotated[datetime | None, Field(default=None, sa_column=Column(nullable=True))]
     
     student: StudentInDB = Relationship(back_populates="refresh_tokens")
