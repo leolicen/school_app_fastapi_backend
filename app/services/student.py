@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
-from ..models.auth import Token, ResetToken
+from ..models.auth import AccessToken, ResetTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
@@ -63,7 +63,7 @@ class StudentService():
       
     # --  LOGIN -- 
     # login valido per studenti ATTIVI E INATTIVI (accesso alla app), i singoli endpoint controlleranno invece che sia anche attivo
-    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> Token:
+    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> AccessToken:
         # autentico lo studente tramite email e password
         student = self.authenticate_student(form_data.username, form_data.password)
         if not student:
@@ -72,10 +72,15 @@ class StudentService():
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"}
             )
+        
+        # CHECK DELETED_AT IS NOT NONE => delete valore campo 
+        
         # se è presente uno studente con quelle credenziali, creo un token con il suo id
         access_token = AuthService.create_access_token(student.student_id, settings.access_token_expire_minutes)
         
-        return Token(access_token=access_token, token_type="bearer")
+        # refresh_token = AuthService.create_refresh_token()
+        
+        return AccessToken(access_token=access_token, token_type="bearer") # refresh_token= refresh_token
     
     
     
@@ -122,7 +127,7 @@ class StudentService():
             
               
     # -- REGISTRAZIONE & LOGIN --
-    def register_and_login(self, student: StudentCreate) -> Token:
+    def register_and_login(self, student: StudentCreate) -> AccessToken:
         # creo un nuovo studente
         new_student = self.register_student(student)
         # creo istanza OAuth2PasswordRequestForm 
@@ -189,12 +194,12 @@ class StudentService():
         # hasho il token raw
         reset_token_hash = hash_reset_token(raw_reset_token)
         # definisco query per selezionare reset token valido dal db
-        check_token = select(ResetToken).where(
-            ResetToken.token_hash == reset_token_hash,
-            ResetToken.expires_at > datetime.now(timezone.utc)
+        check_token = select(ResetTokenInDB).where(
+            ResetTokenInDB.token_hash == reset_token_hash,
+            ResetTokenInDB.expires_at > datetime.now(timezone.utc)
         )
         # eseguo la query => token | None
-        db_valid_token: ResetToken = self._db.exec(check_token).first()
+        db_valid_token: ResetTokenInDB = self._db.exec(check_token).first()
         
         if not db_valid_token:
             raise HTTPException(status_code=400, detail="Invalid or expired reset token")
@@ -209,13 +214,17 @@ class StudentService():
         student_in_db.hashed_password = new_pwd_hash
         
         # elimino il reset token 
-        self._db.exec(delete(ResetToken).where(ResetToken.reset_token_id == db_valid_token.reset_token_id))
+        self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == db_valid_token.reset_token_id))
         
         self._db.commit()
         self._db.refresh(student_in_db)
         
         return {"detail": "Password updated successfully"}
         
+    
+    # -- DELETE STUDENT --
+    def delete_student(self, student_id: uuid.UUID):
+        pass
     
     
    

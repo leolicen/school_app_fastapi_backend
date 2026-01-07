@@ -6,7 +6,7 @@ from sqlalchemy import Column
 
 
 if TYPE_CHECKING:
-    from .internship_agreement import InternshipAgreement
+    from .internship_agreement import InternshipAgreementInDB
 
 # -- modello AZIENDA IN DB -- (tabella)
 # utile a fini di simulazione di gestione reale da parte di admin/tutor 
@@ -20,4 +20,4 @@ class CompanyInDB(SQLModel, table=True):
     address: Annotated[str, Field(max_length=50)]
     tutor: Annotated[str | None, Field(max_length=40)]
     
-    internship_agreements: List["InternshipAgreement"] = Relationship(back_populates="company")
+    internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="company")

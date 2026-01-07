@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from ..models.auth import TokenData, ResetToken
+from ..models.auth import TokenData, ResetTokenInDB
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status
@@ -88,7 +88,7 @@ class AuthService():
         # se esiste, normalizzo l'email per evitare errori come abc@xyz.COM vs. abc@xyz.com
         normalized_email = normalize_email(email)
         # elimino eventuale reset token già esistente
-        delete_previuos_tokens = delete(ResetToken).where(ResetToken.email == normalized_email)
+        delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
         session.exec(delete_previuos_tokens)
         session.commit()
         
@@ -97,7 +97,7 @@ class AuthService():
         # hasho il token
         token_hash = hash_reset_token(raw_token)
         # creo un nuovo ResetToken con token hashato associato all'email
-        reset_token = ResetToken(
+        reset_token = ResetTokenInDB(
             email=normalized_email,
             token_hash=token_hash,
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
