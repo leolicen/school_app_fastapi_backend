@@ -166,6 +166,23 @@ class AuthService():
         return valid_token
     
     
+    # -- REFRESH TOKEN ROTATION --
+    @staticmethod
+    def rotate_refresh_token(refresh_token: RefreshTokenInDB, session: Session) -> str:
+        
+        # estraggo id studente
+        student_id = refresh_token.student_id
+        
+        # revoco l'attuale refresh_token
+        refresh_token.revoked_at = datetime.now(timezone.utc)
+        session.add(refresh_token)
+        session.commit()
+        
+        # creo un nuovo refresh token
+        new_refresh_token = AuthService.create_refresh_token(student_id, session) 
+        
+        return new_refresh_token
+    
     
  
   
