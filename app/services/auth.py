@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-from ..models.auth import TokenData, ResetTokenInDB, RefreshTokenInDB
+
+from sqlalchemy import select
+from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status
@@ -49,7 +51,7 @@ class AuthService():
     
     # -- funzione VALIDAZIONE TOKEN -- decodifica del token e restituzione ID UTENTE (TokenData)
     @staticmethod
-    def validate_token(token: str) -> TokenData:
+    def validate_access_token(token: str) -> AccessTokenData:
         # creo HTTP exception in caso di errore di validazione token
         invalid_token_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -66,7 +68,7 @@ class AuthService():
                 raise invalid_token_exception
             
             # restituisco un oggetto TokenData per maggior controllo
-            return TokenData(user_id=student_id)
+            return AccessTokenData(student_id=student_id)
         
         except (jwt.PyJWTError, ValueError):
             raise invalid_token_exception
@@ -108,6 +110,7 @@ class AuthService():
         return raw_token
     
     
+    # -- CREATE REFRESH TOKEN --
     @staticmethod 
     def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
         
@@ -126,6 +129,41 @@ class AuthService():
         session.refresh(refresh_token_in_db)
         
         return raw_refresh_token
+    
+    
+    # -- VALIDATE REFRESH TOKEN -- restituisco token o None
+    @staticmethod
+    def validate_refresh_token(refresh_token: str, student_id: uuid.UUID, session: Session) -> RefreshTokenInDB | None:
+        print(f"Validating refresh token for student: {student_id}")
+        print(f"Raw token: {refresh_token[:20]}")
+        # hasho il token raw
+        hashed_refresh_token = AuthService.get_password_hash(refresh_token)
+        print(f"Hashed token: '{hash_reset_token[:20]}'")
+        
+        # definisco query db 
+        check_token_validity = select(RefreshTokenInDB).where(
+            RefreshTokenInDB.student_id == student_id,
+            RefreshTokenInDB.token_hash == hashed_refresh_token
+        )
+        # eseguo query
+        valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
+        
+        # se il token è sbagliato o già scaduto (eliminato dal db): errore
+        if not valid_token:
+            print(f"Token not found in DB: invalid or expired")
+            return None
+        # se il token è stato revocato: errore
+        if valid_token.revoked_at is not None:
+            print(f"Token found, but revoked at {valid_token.revoked_at}")
+            return None
+        
+        # nel caso in cui il token sia scaduto, ma non sia ancora stato ripulito dal db: ERRORE
+        if valid_token.expires_at <= datetime.now(timezone.utc):
+            print(f"WARNING | Token expired: {valid_token.expires_at} < {datetime.now(timezone.utc)}")
+            return None
+        
+        print("Token is VALID")
+        return valid_token
     
     
     

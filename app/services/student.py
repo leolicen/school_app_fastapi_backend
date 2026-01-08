@@ -199,7 +199,7 @@ class StudentService():
             ResetTokenInDB.expires_at > datetime.now(timezone.utc)
         )
         # eseguo la query => token | None
-        db_valid_token: ResetTokenInDB = self._db.exec(check_token).first()
+        db_valid_token: ResetTokenInDB | None = self._db.exec(check_token).first()
         
         if not db_valid_token:
             raise HTTPException(status_code=400, detail="Invalid or expired reset token")
