@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
-from ..models.auth import AccessToken, ResetPasswordRequest, ResetPwdData
+from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
 from ..dependencies import get_student_service
 from ..services.student import StudentService
 from ..models.student import StudentCreate
@@ -18,7 +18,7 @@ router = APIRouter(
 
 # -- LOGIN -- 
 # endoint NON PROTETTO
-@router.post("/login", response_model=AccessToken)
+@router.post("/login", response_model=AccessRefreshToken)
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
@@ -28,7 +28,7 @@ def login(
 
 # -- REGISTRAZIONE -- (registrazione + login automatico)
 # endpoint NON PROTETTO
-@router.post("/register", response_model=AccessToken)
+@router.post("/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
     student: StudentCreate,

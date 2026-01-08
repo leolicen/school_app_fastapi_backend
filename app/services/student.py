@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
-from ..models.auth import AccessToken, ResetTokenInDB
+from ..models.auth import AccessRefreshToken, ResetTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
@@ -63,7 +63,7 @@ class StudentService():
       
     # --  LOGIN -- 
     # login valido per studenti ATTIVI E INATTIVI (accesso alla app), i singoli endpoint controlleranno invece che sia anche attivo
-    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> AccessToken:
+    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> AccessRefreshToken:
         # autentico lo studente tramite email e password
         student = self.authenticate_student(form_data.username, form_data.password)
         if not student:
@@ -78,9 +78,11 @@ class StudentService():
         # se è presente uno studente con quelle credenziali, creo un token con il suo id
         access_token = AuthService.create_access_token(student.student_id, settings.access_token_expire_minutes)
         
-        # refresh_token = AuthService.create_refresh_token()
+        # creo un refresh token (salvato hashato in db e restituito raw)
+        refresh_token = AuthService.create_refresh_token(student.student_id, self._db)
         
-        return AccessToken(access_token=access_token, token_type="bearer") # refresh_token= refresh_token
+        
+        return AccessRefreshToken(access_token=access_token, token_type="bearer", refresh_token=refresh_token) 
     
     
     
@@ -127,7 +129,7 @@ class StudentService():
             
               
     # -- REGISTRAZIONE & LOGIN --
-    def register_and_login(self, student: StudentCreate) -> AccessToken:
+    def register_and_login(self, student: StudentCreate) -> AccessRefreshToken:
         # creo un nuovo studente
         new_student = self.register_student(student)
         # creo istanza OAuth2PasswordRequestForm 

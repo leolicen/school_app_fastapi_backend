@@ -22,9 +22,9 @@ async def get_current_student(
     student_service: StudentService = Depends(get_student_service)
     ) -> StudentPublic:
     # valido il token e ricevo l'id estratto in TokenData
-    token_data = AuthService.validate_access_token(token)
+    access_token_data = AuthService.validate_access_token(token)
     # converto l'id (che è una stringa) in UUID
-    student_id = token_data.get_uuid()
+    student_id = access_token_data.get_uuid()
     # ulteriore controllo (già presente in validate_access_token) per sicurezza
     if student_id is None:
         raise student_service.invalid_token_exception
