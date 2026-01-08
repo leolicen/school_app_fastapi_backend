@@ -17,13 +17,13 @@ class AccessToken(BaseModel):
     refresh_token: str 
 
 # -- TOKEN DATA -- estratto dal token decodificato, usato in get_student_by_id
-class TokenData(BaseModel):
-    # l'id utente preso dal token viene restituito come stringa
-    user_id: str | None = None
+class AccessTokenData(BaseModel):
+    # l'id studente preso dal token viene restituito come stringa
+    student_id: str | None = None
     # definisco metodo che trasforma l'id, se presente, da str a UUID
     def get_uuid(self) -> uuid.UUID | None:
-        if self.user_id:
-            return uuid.UUID(self.user_id)
+        if self.student_id:
+            return uuid.UUID(self.student_id)
         return None
 
 # -- RESET TOKEN -- tabella che salva i token temporanei per il reset password (associa email e reset token)
