@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .student import StudentInDB
 
 # -- ACCESS (& REFRESH) TOKEN PUBLIC -- quello che viene restituito all'utente
-class AccessToken(BaseModel):
+class AccessRefreshToken(BaseModel):
     access_token: str
     token_type: str
     refresh_token: str 
