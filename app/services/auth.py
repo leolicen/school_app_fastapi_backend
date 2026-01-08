@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import uuid
-
 from sqlalchemy import select
-from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB
+from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 import jwt
 from ..core.settings import settings
 from fastapi import HTTPException, status
@@ -183,7 +182,27 @@ class AuthService():
         
         return new_refresh_token
     
-    
+    # -- FUNZIONE ENDPOINT /REFRESH -- 
+    @staticmethod
+    def refresh_tokens(refresh_token: str, student_id: uuid.UUID, session: Session) -> AccessRefreshToken:
+        # valido il refresh token ricevuto
+        valid_refresh_token: RefreshTokenInDB | None = AuthService.validate_refresh_token(refresh_token, student_id, session)
+        
+        if not valid_refresh_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        # effettuo rotazione token (revoca vecchio token + creazione nuovo)
+        new_refresh_token: str = AuthService.rotate_refresh_token(valid_refresh_token, session)
+        
+        # creo un nuovo access token
+        new_access_token = AuthService.create_access_token(student_id, settings.access_token_expire_minutes)
+        
+        return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
+        
+        
  
   
     

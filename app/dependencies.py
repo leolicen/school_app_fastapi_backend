@@ -1,16 +1,20 @@
+import uuid
 from app.services.auth import AuthService
 from core.database import SessionDep
 from .core.settings import settings
 from .services.student import StudentService 
 from .models.student import StudentPublic
 from typing import Annotated
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
+import jwt
 
 
 
 # -- STUDENT SERVICE DEPENDENCY --
 def get_student_service(session: SessionDep):
     return StudentService(session=session)
+
+
 
 
 # -- GET CURRENT STUDENT -- 
@@ -48,6 +52,35 @@ async def get_current_active_student(current_student: Annotated[StudentPublic, D
             detail="Inactive user"
             )
     return current_student
+
+
+# -- GET CURRENT USER ID with EXPIRED ACCESS TOKEN --
+# usata in /auth/refresh per recuperare l'id studente anche se l'access token è scaduto 
+def get_current_student_id_only(token: str = Depends(settings.oauth2_scheme)) -> uuid.UUID:
+   
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(
+            token, 
+            settings.secret_key, 
+            algorithms=[settings.algorithm],
+            options={ "verify_exp": False}  # non controlla la scadenza del token
+        )
+        student_id_str: str = payload.get("sub")
+        
+        if student_id_str is None:
+            raise credentials_exception
+        
+        return uuid.UUID(student_id_str)
+    
+    except:
+        raise credentials_exception
+
 
 
 
