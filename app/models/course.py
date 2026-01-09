@@ -6,7 +6,7 @@ from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
 
 if TYPE_CHECKING:
-    from .student import Student
+    from .student import StudentInDB
 
 # -- modello COURSE -- modello unico => tabella (con id) & modello 'Public' per utenti app (anche qui serve id)
 
@@ -29,7 +29,7 @@ class CourseInDB(SQLModel, table=True):
     # Relazione inversa: lista studenti iscritti => si tratta solo di una relazione VIRTUALE, non di una vera proprietà
     # la proprietà 'students' è collegata alla proprietà 'course' della classe Student
     # permette da Course di accedere alla lista di studenti collegati al corso
-    students: List["Student"] = Relationship(back_populates="course")
+    students: List["StudentInDB"] = Relationship(back_populates="course")
 
 
 

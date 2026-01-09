@@ -32,7 +32,18 @@ def update_student(
     return student_service.update_student(current_student.student_id, student_to_update)
 
 
+
 # DELETE_STUDENT
+# endpoint PROTETTO
+# dipende da GET_CURRENT_STUDENT => QUALSIASI STUDENTE può eliminare il proprio account
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    current_student: Annotated[StudentPublic, Depends(get_current_student)],
+    student_service: Annotated[StudentService, Depends(get_student_service)]
+):
+    pass
+
+
 
 # -- CHANGE_PASSWORD -- (interno alla app => account studente)
 # endpoint PROTETTO
@@ -46,3 +57,4 @@ def change_password(
     student_service.change_password(current_student,pwd_data)
     
     return {"detail": "Password updated successfully"}
+

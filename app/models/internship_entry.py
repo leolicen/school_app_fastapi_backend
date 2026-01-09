@@ -8,7 +8,7 @@ from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
 
 if TYPE_CHECKING:
-    from .internship_agreement import InternshipAgreement
+    from .internship_agreement import InternshipAgreementInDB
 
 
 class ShiftType(str, Enum):
@@ -35,9 +35,9 @@ class InternshipEntryBase(SQLModel):
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
 class InternshipEntryInDB(InternshipEntryBase, table=True):
     entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
-    agreement_id: Annotated[int, Field(foreign_key="internshipagreement.agreement_id", index=True)]
+    agreement_id: Annotated[int, Field(foreign_key="internshipagreementindb.agreement_id", index=True)]
     
-    internship_agreement: InternshipAgreement = Relationship(back_populates="internship_entries")
+    internship_agreement: InternshipAgreementInDB = Relationship(back_populates="internship_entries")
     
     
 

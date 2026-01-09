@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+import uuid
+from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, HTTPException, status
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
-from ..models.auth import Token, ResetPasswordRequest, ResetPwdData
-from ..dependencies import get_student_service
+from sqlmodel import Session
+from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
+from ..dependencies import get_student_service, get_current_student_id_only
 from ..services.student import StudentService
 from ..models.student import StudentCreate
 from ..core.rate_limiting import limiter
+from core.database import SessionDep
+from ..services.auth import AuthService
 
 
 # definisco router /auth 
@@ -18,7 +22,8 @@ router = APIRouter(
 
 # -- LOGIN -- 
 # endoint NON PROTETTO
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=AccessRefreshToken)
+@limiter.limit("10/minute")
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
@@ -28,7 +33,7 @@ def login(
 
 # -- REGISTRAZIONE -- (registrazione + login automatico)
 # endpoint NON PROTETTO
-@router.post("/register", response_model=Token)
+@router.post("/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
     student: StudentCreate,
@@ -60,3 +65,24 @@ def reset_password(
     student_service: StudentService = Depends(get_student_service)
 ):
     return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
+
+
+
+# -- REFRESH ACCESS TOKEN --
+# endpoint NON PROTETTO
+@router.post("/refresh", response_model=AccessRefreshToken)
+@limiter.limit("5/minute")
+def refresh_tokens(
+    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
+    session: Annotated[Session, Depends(SessionDep)],
+    refresh_token: Annotated[str | None, Cookie()] = None # Cookie è header HTTP 
+):
+    
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required"
+        )
+        
+    return AuthService.refresh_tokens(refresh_token, student_id, session)
+    
