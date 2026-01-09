@@ -75,7 +75,7 @@ def reset_password(
 def refresh_tokens(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     session: Annotated[Session, Depends(SessionDep)],
-    refresh_token: Annotated[str | None, Cookie()] = None  
+    refresh_token: Annotated[str | None, Cookie()] = None # Cookie è header HTTP 
 ):
     
     if not refresh_token:
