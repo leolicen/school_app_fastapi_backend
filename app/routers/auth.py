@@ -23,6 +23,7 @@ router = APIRouter(
 # -- LOGIN -- 
 # endoint NON PROTETTO
 @router.post("/login", response_model=AccessRefreshToken)
+@limiter.limit("10/minute")
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
@@ -70,6 +71,7 @@ def reset_password(
 # -- REFRESH ACCESS TOKEN --
 # endpoint NON PROTETTO
 @router.post("/refresh", response_model=AccessRefreshToken)
+@limiter.limit("5/minute")
 def refresh_tokens(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     session: Annotated[Session, Depends(SessionDep)],
