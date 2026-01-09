@@ -7,8 +7,9 @@ from sqlalchemy import Column
 from ..utils.validators import strong_password_validator, normalize_email
 
 if TYPE_CHECKING:
-    from .course import Course
-    from .internship_agreement import InternshipAgreement
+    from .course import CourseInDB
+    from .internship_agreement import InternshipAgreementInDB
+    from .auth import RefreshTokenInDB
 
 
 # -- modello STUDENTE BASE -- (campi comuni a tutti i modelli)
@@ -34,13 +35,15 @@ class StudentInDB(StudentBase, table=True):
     student_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     hashed_password: Annotated[str, Field(max_length=255, index=True)]
     email: Annotated[EmailStr, Field(max_length=50,unique=True, index=True)]
-    course_id: Annotated[uuid.UUID, Field(foreign_key="course.course_id")]
+    course_id: Annotated[uuid.UUID, Field(foreign_key="courseindb.course_id")]
     phone: Annotated[str | None, Field(max_length=10)]
     is_active: Annotated[bool, Field(default=True)]
     
-    course: Course = Relationship(back_populates="students")
+    course: CourseInDB = Relationship(back_populates="students")
     
-    internship_agreements: List["InternshipAgreement"] = Relationship(back_populates="student")
+    internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="student")
+    
+    refresh_tokens: List["RefreshTokenInDB"] = Relationship(back_populates="student")
     
 
 # -- modello CREA STUDENTE -- (input registrazione)
