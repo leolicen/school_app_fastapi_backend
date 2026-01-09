@@ -191,23 +191,9 @@ class StudentService():
             return {"detail": "If email is valid, request was sent"}
     
     
-    # -- RESET PASSWORD -- 
-    def confirm_password_reset(self, raw_reset_token: str, new_password: str) -> dict[str, str]:
-        # hasho il token raw
-        reset_token_hash = hash_reset_token(raw_reset_token)
-        # definisco query per selezionare reset token valido dal db
-        check_token = select(ResetTokenInDB).where(
-            ResetTokenInDB.token_hash == reset_token_hash,
-            ResetTokenInDB.expires_at > datetime.now(timezone.utc)
-        )
-        # eseguo la query => token | None
-        db_valid_token: ResetTokenInDB | None = self._db.exec(check_token).first()
-        
-        if not db_valid_token:
-            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
-        
-        # se il token esiste e è valido, recupero lo studente dal db
-        student_in_db = self.get_student_by_email(db_valid_token.email)
+    def reset_password(self, reset_token: ResetTokenInDB, new_password: str) -> dict[str, str]:
+        # recupero lo studente dal db
+        student_in_db = self.get_student_by_email(reset_token.email)
         
         # creo hash della nuova password
         new_pwd_hash = AuthService.get_password_hash(new_password)
@@ -216,13 +202,23 @@ class StudentService():
         student_in_db.hashed_password = new_pwd_hash
         
         # elimino il reset token 
-        self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == db_valid_token.reset_token_id))
+        self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
         
         self._db.commit()
         self._db.refresh(student_in_db)
         
         return {"detail": "Password updated successfully"}
+    
+    
+    # -- RESET PASSWORD -- 
+    def confirm_password_reset(self, raw_reset_token: str, new_password: str) -> dict[str, str]:
+       # valido il reset token
+       valid_reset_token = AuthService.validate_reset_token(raw_reset_token, self._db)
+       
+       # aggiorno la password
+       return self.reset_password(valid_reset_token, new_password)
         
+     
     
     # -- DELETE STUDENT --
     def delete_student(self, student_id: uuid.UUID):

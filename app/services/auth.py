@@ -109,6 +109,25 @@ class AuthService():
         return raw_token
     
     
+    # -- VALIDATE RESET TOKEN --
+    @staticmethod
+    def validate_reset_token(raw_reset_token: str, session: Session) -> ResetTokenInDB:
+        # hasho il token raw
+        reset_token_hash = hash_reset_token(raw_reset_token)
+        # definisco query per selezionare reset token valido dal db
+        check_token = select(ResetTokenInDB).where(
+            ResetTokenInDB.token_hash == reset_token_hash,
+            ResetTokenInDB.expires_at > datetime.now(timezone.utc)
+        )
+        # eseguo la query => token | None
+        db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
+        
+        if not db_valid_token:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        
+        return db_valid_token
+    
+    
     # -- CREATE REFRESH TOKEN --
     @staticmethod 
     def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
@@ -181,6 +200,7 @@ class AuthService():
         new_refresh_token = AuthService.create_refresh_token(student_id, session) 
         
         return new_refresh_token
+    
     
     # -- FUNZIONE ENDPOINT /REFRESH -- 
     @staticmethod
