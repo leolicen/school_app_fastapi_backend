@@ -3,6 +3,7 @@ from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, HTTPException, 
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
+from app.core import settings
 from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
 from ..dependencies import get_student_service, get_current_student_id_only
 from ..services.student import StudentService
@@ -85,4 +86,14 @@ def refresh_tokens(
         )
         
     return AuthService.refresh_tokens(refresh_token, student_id, session)
-    
+
+
+# -- LOGOUT --
+# endpoint PROTETTO
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
+    student_service: Annotated[StudentService, Depends(get_student_service)],
+    access_token: Annotated[str, Depends(settings.oauth2_scheme)]
+):
+    await student_service.logout(student_id, access_token)
