@@ -11,6 +11,7 @@ from sqlmodel import delete, Session
 import secrets
 from ..services.student import StudentService
 from ..utils.hash_reset_token import hash_reset_token
+from ..core.redis import rdb
 
 
 
@@ -37,10 +38,14 @@ class AuthService():
                 expire = datetime.now(timezone.utc) + expires_delta
             else:
                 expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-            # payload (1/3 elementi del JWT con header e signature) formato da claim "sub" (subject) con valore id univoco + claim "exp"
+            
+           # creo un id per il claim jti (usato per blacklist redis) 
+            jti = str(uuid.uuid4()) 
+            # payload (1/3 elementi del JWT con header e signature) formato da claim "sub" (subject) con valore id univoco + claim "exp" + claim "jti"
             payload = {
                 "sub": str(id),
-                "exp": expire
+                "exp": expire,
+                "jti": jti
             }
             # secret_key e algorithm presi da classe settings che legge variabili d'ambiente da .env
             encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
@@ -50,7 +55,7 @@ class AuthService():
     
     # -- funzione VALIDAZIONE TOKEN -- decodifica del token e restituzione ID UTENTE (TokenData)
     @staticmethod
-    def validate_access_token(token: str) -> AccessTokenData:
+    async def validate_access_token(token: str) -> AccessTokenData:
         # creo HTTP exception in caso di errore di validazione token
         invalid_token_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -61,6 +66,11 @@ class AuthService():
         try:
             # decodifico il token ricevuto
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            # estraggo il claim "jti" 
+            jti = payload.get("jti")
+            # controllo che il jti non sia in blacklist redis
+            if jti and await rdb.get(f"blacklist:{jti}"):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token revoked")
             # estraggo il claim "sub" (contenente l'id)
             student_id = payload.get("sub")
             if student_id is None:

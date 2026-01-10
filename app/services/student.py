@@ -1,18 +1,19 @@
-from datetime import datetime, timezone
 import uuid
 from fastapi import HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
+import jwt
 from pydantic import EmailStr
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 from sqlmodel import Session, select
 from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 from .auth import AuthService
-from ..models.auth import AccessRefreshToken, ResetTokenInDB
+from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
-from ..utils.hash_reset_token import hash_reset_token
+from datetime import datetime, timezone
+from ..core.redis import rdb
 
 
 
@@ -223,6 +224,52 @@ class StudentService():
     # -- DELETE STUDENT --
     def delete_student(self, student_id: uuid.UUID):
         pass
+    
+    
+    # -- REVOKE REFRESH TOKEN -- (solo per revoca in logout)
+    def revoke_refresh_token(self, student_id: uuid.UUID) -> int:
+        # definisco query update campo "revoked_at" del refresh token
+        revoke_refresh_token = update(RefreshTokenInDB).where(
+            RefreshTokenInDB.student_id == student_id,
+            RefreshTokenInDB.revoked_at.is_(None),
+            RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
+        ).values(revoked_at=datetime.now(timezone.utc))
+        
+        result = self._db.exec(revoke_refresh_token)
+        rowcount = result.rowcount
+        
+        self._db.commit()
+        
+        if rowcount == 0:
+            print(f"No active refresh token for student {student_id}")
+        
+        
+        return rowcount
+    
+    
+    # -- LOGOUT -- 
+    async def logout(self, student_id: uuid.UUID, access_token: str):
+       
+        # REVOCA REFRESH TOKEN
+        self.revoke_refresh_token(student_id)
+        
+        # decodifico il token ricevuto
+        payload = jwt.decode(
+            access_token, 
+            settings.secret_key, 
+            algorithms=[settings.algorithm],
+            options={"verify_exp": False}
+            )
+        
+        # estraggo il jti
+        jti = payload["jti"]
+        # estraggo la scadenza
+        ttl = payload["exp"] - datetime.now(timezone.utc).timestamp()
+        
+        # inserisco JTI in BLACK LIST REDIS
+        await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
+        # 1 indica che la chiave inserita è presente nella lista (1 perché è il valore più piccolo possibile, qualsiasi altro sarebbe ugualmente accettato)
+       
     
     
    
