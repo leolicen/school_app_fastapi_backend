@@ -1,13 +1,19 @@
-from fastapi import APIRouter, Depends
+import uuid
+from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, HTTPException, status
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
-from ..models.token import Token
-from ..dependencies import get_student_service
+from sqlmodel import Session
+from app.core import settings
+from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
+from ..dependencies import get_student_service, get_current_student_id_only
 from ..services.student import StudentService
 from ..models.student import StudentCreate
+from ..core.rate_limiting import limiter
+from core.database import SessionDep
+from ..services.auth import AuthService
 
 
-# definisco router /auth PUBBLICO
+# definisco router /auth 
 router = APIRouter(
     # il prefisso non ha '/' finale perché è incluso nei singoli endpoint
     prefix="/auth",
@@ -15,16 +21,21 @@ router = APIRouter(
    
 )
 
-# -- endpoint LOGIN studenti -- 
-@router.post("/login", response_model=Token)
+# -- LOGIN -- 
+# endoint NON PROTETTO
+@router.post("/login", response_model=AccessRefreshToken)
+@limiter.limit("10/minute")
 def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
     ):
     return student_service.login_for_access_token(form_data)
 
-# -- endpoint REGISTRAZIONE studenti -- registrazione + login automatico
-@router.post("/register", response_model=Token)
+
+# -- REGISTRAZIONE -- (registrazione + login automatico)
+# endpoint NON PROTETTO
+@router.post("/register", response_model=AccessRefreshToken)
+@limiter.limit("5/hour")
 def register_student(
     student: StudentCreate,
     student_service: StudentService = Depends(get_student_service)
@@ -32,3 +43,57 @@ def register_student(
     return student_service.register_and_login(student)
 
 
+# -- PASSWORD RESET REQUEST --
+# endpoint NON PROTETTO
+@router.post("/password/reset-request", response_model=dict[str, str])
+@limiter.limit("5/15minute")
+def request_password_reset(
+    request: ResetPasswordRequest,
+    background_tasks: BackgroundTasks,
+    student_service: StudentService = Depends(get_student_service)
+):
+    return student_service.request_password_reset(request.email, background_tasks)
+    
+
+
+# -- PASSWORD RESET --
+# endpoint NON PROTETTO
+# riceve raw token e new_pwd dal form di reset password
+@router.post("/password/reset-confirm", response_model=dict[str, str])
+@limiter.limit("5/15minute")
+def reset_password(
+    reset_pwd_data: ResetPwdData, # unico body param che ingloba token e new_pwd
+    student_service: StudentService = Depends(get_student_service)
+):
+    return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
+
+
+
+# -- REFRESH ACCESS TOKEN --
+# endpoint NON PROTETTO
+@router.post("/refresh", response_model=AccessRefreshToken)
+@limiter.limit("5/minute")
+def refresh_tokens(
+    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
+    session: Annotated[Session, Depends(SessionDep)],
+    refresh_token: Annotated[str | None, Cookie()] = None # Cookie è header HTTP 
+):
+    
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token required"
+        )
+        
+    return AuthService.refresh_tokens(refresh_token, student_id, session)
+
+
+# -- LOGOUT --
+# endpoint PROTETTO
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
+    student_service: Annotated[StudentService, Depends(get_student_service)],
+    access_token: Annotated[str, Depends(settings.oauth2_scheme)]
+):
+    await student_service.logout(student_id, access_token)

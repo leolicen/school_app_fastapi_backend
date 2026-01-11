@@ -9,9 +9,9 @@ from sqlalchemy import Column
 
 
 if TYPE_CHECKING:
-    from .student import Student
-    from .company import Company
-    from .internship_entry import InternshipEntry
+    from .student import StudentInDB
+    from .company import CompanyInDB
+    from .internship_entry import InternshipEntryInDB
 
 
 class InternshipAgreementBase(SQLModel):
@@ -21,10 +21,10 @@ class InternshipAgreementBase(SQLModel):
     is_active: bool 
 
 
-class InternshipAgreement(InternshipAgreementBase, table=True):
+class InternshipAgreementInDB(InternshipAgreementBase, table=True):
     agreement_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
-    student_id: Annotated[int, Field(foreign_key="student.student_id", index=True)]
-    company_id: Annotated[int, Field(foreign_key="company.company_id")]
+    student_id: Annotated[int, Field(foreign_key="studentindb.student_id", index=True)]
+    company_id: Annotated[int, Field(foreign_key="companyindb.company_id")]
     
     
     # attributo speciale di SQLAlchemy (declarative class attribute) per definire configurazioni avanzate della tabella
@@ -33,11 +33,11 @@ class InternshipAgreement(InternshipAgreementBase, table=True):
         UniqueConstraint("student_id", "company_id", name="unique_student_company"), # => la virgola rende il valore una TUPLA
     )
     
-    student: Student = Relationship(back_populates="internship_agreements")
+    student: StudentInDB = Relationship(back_populates="internship_agreements")
     
-    company: Company = Relationship(back_populates="internship_agreements")
+    company: CompanyInDB = Relationship(back_populates="internship_agreements")
     
-    internship_entries: List["InternshipEntry"] | None = Relationship(back_populates="internship_agreement")
+    internship_entries: List["InternshipEntryInDB"] | None = Relationship(back_populates="internship_agreement")
     
 
 class InternshipAgreementPublic(InternshipAgreementBase):
