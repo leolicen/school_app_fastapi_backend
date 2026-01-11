@@ -4,8 +4,9 @@ from sqlmodel import create_engine, SQLModel, Session, delete
 from .settings import settings
 from contextlib import asynccontextmanager 
 from ..models.auth import RefreshTokenInDB
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi_utilities import repeat_every
+from ..models.student import StudentInDB
 
 # -- creazione ENGINE --
 engine = create_engine(settings.db_url, echo=True,pool_pre_ping=True)
@@ -37,6 +38,22 @@ def delete_expired_refresh_tokens(session: Session) -> int:
     return result.rowcount
 
 
+# -- funzione ELIMINA ACCOUNT SCADUTI --
+def delete_expired_accounts(session: Session) -> int:
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    delete_stmt = delete(StudentInDB).where(
+        StudentInDB.deleted_at.is_Not(None),
+        StudentInDB.deleted_at <= cutoff
+    )
+    
+    result = session.exec(delete_stmt)
+    session.commit()
+    
+    return result.rowcount
+
+
 # -- funzione LIFESPAN app -- da inserire dentro a istanza app FastAPI()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,10 +68,21 @@ async def lifespan(app: FastAPI):
 # -- CRON JOB => ELIMINA REFRESH TOKEN SCADUTI ogni ora --
 @repeat_every(seconds=3600)
 def hourly_refresh_token_cleanup() -> None:
-    session = Session(engine)
-    try:
-        deleted = delete_expired_refresh_tokens(session)
-        print(f"Deleted {deleted} expired refresh tokens")
-    finally:
-        session.close()
+    with Session(engine) as session:
+        try:
+            deleted = delete_expired_refresh_tokens(session)
+            print(f"Deleted {deleted} expired refresh tokens")
+        except Exception as e:
+            print(f"Refresh token cleanup failed: {e}")
+            
+
+# -- CRON JOB => ELIMINA ACCOUNT DOPO 30 GIORNI DA SOFT DELETE --
+@repeat_every(seconds=3600 * 6)
+def hourly_deleted_accounts_cleanup() -> None:
+    with Session(engine) as session:
+        try:
+            deleted = delete_expired_accounts(session)
+            print(f"Deleted {deleted} expired accounts")
+        except Exception as e:
+            print(f"Deleted accounts cleanup failed: {e}")
         
