@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,12 +28,21 @@ class Settings(BaseSettings):
     # -- JWT --
     secret_key: str
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 15
+    
+    redis_url: str = "refis://localhost:6379/0"
+    
+    # -- REFRESH TOKEN
+    refresh_token_expire_days: int = 7
     
     # istanza di PasswordHash con Argon2 come hasher
     pwd_hash = PasswordHash.recommended()
     # definisco istanza di OAuth2PasswordBearer che richiede l'url dell'endpoint che restituisce il token
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+    
+    resend_api_key: str
+    resend_from: str
+    pwd_reset_url: str # indirizzo pagina app Flutter per reset password (da implementare con go router)
     
     
     # classe annidata che dice a Pydantic come comportarsi (senza Pydantic leggerebbe solo variabili d'ambiente di sistema)

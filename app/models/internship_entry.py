@@ -1,4 +1,4 @@
-from typing import Annotated, TYPE_CHECKING, List
+from typing import Annotated, TYPE_CHECKING
 from pydantic import field_validator
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, time
@@ -8,7 +8,7 @@ from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
 
 if TYPE_CHECKING:
-    from .internship_agreement import InternshipAgreement
+    from .internship_agreement import InternshipAgreementInDB
 
 
 class ShiftType(str, Enum):
@@ -23,6 +23,7 @@ class InternshipEntryBase(SQLModel):
     end_time: time 
     
     @field_validator('end_time')
+    @classmethod
     def end_after_start(cls, v, values):
         if 'start_time' in values and v <= values['start_time']:
             raise ValueError('end_time deve essere successiva a start_time')
@@ -32,11 +33,11 @@ class InternshipEntryBase(SQLModel):
     description: Annotated[str, Field(max_length=150)]
     
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
-class InternshipEntry(InternshipEntryBase, table=True):
+class InternshipEntryInDB(InternshipEntryBase, table=True):
     entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
-    agreement_id: Annotated[int, Field(foreign_key="internshipagreement.agreement_id", index=True)]
+    agreement_id: Annotated[int, Field(foreign_key="internshipagreementindb.agreement_id", index=True)]
     
-    internship_agreement: InternshipAgreement = Relationship(back_populates="internship_entries")
+    internship_agreement: InternshipAgreementInDB = Relationship(back_populates="internship_entries")
     
     
 
