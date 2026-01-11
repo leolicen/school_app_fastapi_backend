@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import TYPE_CHECKING, Annotated, List
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, field_validator # tipo di stringa Pydantic per validazione email
@@ -38,6 +39,8 @@ class StudentInDB(StudentBase, table=True):
     course_id: Annotated[uuid.UUID, Field(foreign_key="courseindb.course_id")]
     phone: Annotated[str | None, Field(max_length=10)]
     is_active: Annotated[bool, Field(default=True)]
+    # campo per soft delete account
+    deleted_at: Annotated[datetime, Field(default=None, index=True)]
     
     course: CourseInDB = Relationship(back_populates="students")
     
