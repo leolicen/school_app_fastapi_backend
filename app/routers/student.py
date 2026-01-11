@@ -4,6 +4,7 @@ from typing import Annotated
 from ..dependencies import get_current_student, get_current_active_student, get_student_service
 from ..services.student import StudentService
 from ..models.password import ChangePassword
+from ..core.settings import settings
 
 # definisco router /auth 
 router = APIRouter(
@@ -36,12 +37,13 @@ def update_student(
 # DELETE_STUDENT
 # endpoint PROTETTO
 # dipende da GET_CURRENT_STUDENT => QUALSIASI STUDENTE può eliminare il proprio account
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
-def delete_account(
+@router.delete("/me", response_model=dict[str, str])
+async def delete_account(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
-    student_service: Annotated[StudentService, Depends(get_student_service)]
+    student_service: Annotated[StudentService, Depends(get_student_service)],
+    access_token: Annotated[str, Depends(settings.oauth2_scheme)]
 ):
-    pass
+    return await student_service.delete_student(current_student, access_token)
 
 
 

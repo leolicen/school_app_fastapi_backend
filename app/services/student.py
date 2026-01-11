@@ -75,6 +75,13 @@ class StudentService():
             )
         
         # CHECK DELETED_AT IS NOT NONE => delete valore campo 
+        if student.deleted_at:
+            delta = datetime.now(timezone.utc) - student.deleted_at
+            if delta.days >= 30:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account retrieval period expired")
+            student.deleted_at = None
+            self._db.commit()
+            self._db.refresh(student)
         
         # se è presente uno studente con quelle credenziali, creo un token con il suo id
         access_token = AuthService.create_access_token(student.student_id, settings.access_token_expire_minutes)
@@ -220,11 +227,7 @@ class StudentService():
        return self.reset_password(valid_reset_token, new_password)
         
      
-    
-    # -- DELETE STUDENT --
-    def delete_student(self, student_id: uuid.UUID):
-        pass
-    
+ 
     
     # -- REVOKE REFRESH TOKEN -- (solo per revoca in logout)
     def revoke_refresh_token(self, student_id: uuid.UUID) -> int:
@@ -247,12 +250,8 @@ class StudentService():
         return rowcount
     
     
-    # -- LOGOUT -- 
-    async def logout(self, student_id: uuid.UUID, access_token: str):
-       
-        # REVOCA REFRESH TOKEN
-        self.revoke_refresh_token(student_id)
-        
+    # -- BLACKLIST ACCESS TOKEN -- (usata in logout())
+    async def blacklist_access_token(self, access_token: str):
         # decodifico il token ricevuto
         payload = jwt.decode(
             access_token, 
@@ -269,7 +268,32 @@ class StudentService():
         # inserisco JTI in BLACK LIST REDIS
         await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
         # 1 indica che la chiave inserita è presente nella lista (1 perché è il valore più piccolo possibile, qualsiasi altro sarebbe ugualmente accettato)
-       
     
+    
+    # -- LOGOUT -- 
+    async def logout(self, student_id: uuid.UUID, access_token: str):
+       
+        # REVOCA REFRESH TOKEN
+        self.revoke_refresh_token(student_id)
+        
+        # ACCESS TOKEN IN BLACKLIST REDIS
+        self.blacklist_access_token(access_token)
+        
+       
+       
+       
+    # -- DELETE STUDENT -- (soft delete)
+    async def delete_student(self, student: StudentPublic, access_token: str) -> dict[str, str]:
+        # recupero studente da db
+        student_in_db = self.get_student_by_email(student.email)
+        # imposto orario deleted_at
+        student_in_db.deleted_at = datetime.now(timezone.utc)
+        
+        self._db.commit()
+        
+        # eseguo il logout
+        await self.logout(student.student_id, access_token)
+        
+        return {"detail": "Account deletion requested. Login within 30 days to recover."}
     
    
