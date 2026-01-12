@@ -7,12 +7,18 @@ from .models.student import StudentPublic
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 import jwt
+from .services.course import CourseService
 
 
 
 # -- STUDENT SERVICE DEPENDENCY --
 def get_student_service(session: SessionDep):
     return StudentService(session=session)
+
+
+# -- COURSE SERVICE DEPENDENCY --
+def get_course_service(session: SessionDep):
+    return CourseService(session=session)
 
 
 
