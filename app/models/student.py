@@ -44,6 +44,7 @@ class StudentInDB(StudentBase, table=True):
     
     course: CourseInDB = Relationship(back_populates="students")
     
+    # è già gestito il caso di lista vuota iniziale
     internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="student")
     
     refresh_tokens: List["RefreshTokenInDB"] = Relationship(back_populates="student")
