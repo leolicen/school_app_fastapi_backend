@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 import jwt
 from .services.course import CourseService
+from .services.internship import InternshipService
 
 
 
@@ -19,6 +20,11 @@ def get_student_service(session: SessionDep):
 # -- COURSE SERVICE DEPENDENCY --
 def get_course_service(session: SessionDep):
     return CourseService(session=session)
+
+
+# -- INTERNSHIP SERVICE DEPENDENCY --
+def get_internship_service(session: SessionDep):
+    return InternshipService(session=session)
 
 
 
