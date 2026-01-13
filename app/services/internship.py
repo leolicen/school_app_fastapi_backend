@@ -4,7 +4,7 @@ import uuid
 from sqlmodel import Session, select
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
 from ..models.student import StudentPublic
-from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic
+from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
 
 
 
@@ -60,5 +60,18 @@ class InternshipService():
         entries_public_list = [InternshipEntryPublic.model_validate(e) for e in entries_in_db]
         
         return entries_public_list
+    
+    
+    
+    # -- CREATE INTERNSHIP ENTRY --
+    def create_internship_entry(self, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
+        new_entry = InternshipEntryInDB(
+            **entry.model_dump()
+        )
         
+        self._db.add(new_entry)
+        self._db.commit()
+        self._db.refresh(new_entry)
+        
+        return InternshipEntryPublic.model_validate(new_entry)
