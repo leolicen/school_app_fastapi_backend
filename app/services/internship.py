@@ -1,6 +1,9 @@
+from datetime import datetime, timedelta, timezone
 from typing import List
 from typing import Sequence
 import uuid
+from fastapi import HTTPException, status
+from sqlalchemy import and_, exists
 from sqlmodel import Session, select
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
 from ..models.student import StudentPublic
@@ -66,12 +69,46 @@ class InternshipService():
     # -- CREATE INTERNSHIP ENTRY --
     def create_internship_entry(self, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
-        new_entry = InternshipEntryInDB(
-            **entry.model_dump()
+        # check duplicati perfetti tramite UniqueConstraint nel modello InDB 
+        db_entry = InternshipEntryInDB.model_validate(entry)
+        
+        # check orari turni sovrapposti
+        # exists() non istanzia modelli, ma si limita a fare un check di esistenza
+        overlap_stmt = select(exists().where(
+            InternshipEntryInDB.agreement_id == db_entry.agreement_id,
+            InternshipEntryInDB.date == db_entry.date,
+            and_(
+                InternshipEntryInDB.start_time < db_entry.end_time, 
+                InternshipEntryInDB.end_time > db_entry.start_time 
+            )
+        )
         )
         
-        self._db.add(new_entry)
-        self._db.commit()
-        self._db.refresh(new_entry)
+        # eseguo query => bool (1 o 0)
+        overlap_exists = self._db.exec(overlap_stmt).scalar()
         
-        return InternshipEntryPublic.model_validate(new_entry)
+        
+        if overlap_exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Overlapping entry time"
+            )
+        
+        
+        self._db.add(db_entry)
+        self._db.commit()
+        self._db.refresh(db_entry)
+        
+        return InternshipEntryPublic.model_validate(db_entry)
+    
+    
+    
+    # -- DELETE INTERNSHIP ENTRY --
+    # def delete_internship_entry(self, entry_id: uuid.UUID):
+    #     now = datetime.now(timezone.utc)
+    #     select(InternshipEntryInDB).where(
+    #         InternshipEntryInDB.entry_id == entry_id,
+    #         InternshipEntryInDB.date <= now,
+    #         InternshipEntryInDB.date >= now - timedelta(days=10)
+    #     )
+        
