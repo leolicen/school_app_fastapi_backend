@@ -1,21 +1,17 @@
 from typing import TYPE_CHECKING, Annotated, List, Optional
 from sqlmodel import SQLModel, Field, Relationship
-from datetime import date
+from datetime import date, datetime
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime, func
 
 if TYPE_CHECKING:
     from .student import StudentInDB
+    
 
-# -- modello COURSE -- modello unico => tabella (con id) & modello 'Public' per utenti app (anche qui serve id)
-
-class CourseInDB(SQLModel, table=True):
-    # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
-    course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
-    # Field(index=True) tells SQLModel that it should create a SQL index for this column
-    name: Annotated[str, Field(max_length=100, index=True, unique=True)]
-    # full_name: Annotated[str, Field(max_length=150)]
+# -- modello CORSO BASE --
+class CourseBase(SQLModel):
+    name: Annotated[str, Field(max_length=100)]
     course_type: Annotated[str, Field(max_length=50)] 
     schedule: Annotated[str | None, Field(max_length=100)]
     schedule_type: Annotated[str | None, Field(max_length=100)] 
@@ -24,7 +20,16 @@ class CourseInDB(SQLModel, table=True):
     start_date: date
     location: Annotated[str, Field(max_length=100)]
     is_active: Annotated[bool, Field(default=True)]
-    
+
+
+# -- modello CORSO IN DB --
+class CourseInDB(CourseBase, table=True):
+    # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
+    course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
+    # Field(index=True) tells SQLModel that it should create a SQL index for this column
+    name: Annotated[str, Field(max_length=100, index=True, unique=True)]
+    # full_name: Annotated[str, Field(max_length=150)]
+    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
      
     # Relazione inversa: lista studenti iscritti => si tratta solo di una relazione VIRTUALE, non di una vera proprietà
     # la proprietà 'students' è collegata alla proprietà 'course' della classe Student
@@ -32,6 +37,9 @@ class CourseInDB(SQLModel, table=True):
     students: List["StudentInDB"] = Relationship(back_populates="course")
 
 
+# -- modello CORSO PUBBLICO --
+class CoursePublic(CourseBase):
+    course_id: uuid.UUID
 
 
 

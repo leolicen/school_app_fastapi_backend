@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, field_validator # tipo di stringa Pydantic per validazione email
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime, func
 from ..utils.validators import strong_password_validator, normalize_email
 
 if TYPE_CHECKING:
@@ -39,6 +39,8 @@ class StudentInDB(StudentBase, table=True):
     course_id: Annotated[uuid.UUID, Field(foreign_key="courseindb.course_id")]
     phone: Annotated[str | None, Field(max_length=10)]
     is_active: Annotated[bool, Field(default=True)]
+    # data e ora creazione per log/audit
+    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
     # campo per soft delete account
     deleted_at: Annotated[datetime, Field(default=None, index=True)]
     

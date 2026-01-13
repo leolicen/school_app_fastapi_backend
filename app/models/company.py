@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Annotated, TYPE_CHECKING, List
 from sqlmodel import Relationship, SQLModel, Field
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime, func
 
 
 if TYPE_CHECKING:
@@ -19,5 +20,7 @@ class CompanyInDB(SQLModel, table=True):
     city: Annotated[str, Field(max_length=50, index=True)]
     address: Annotated[str, Field(max_length=50)]
     tutor: Annotated[str | None, Field(max_length=40)]
+    # data e ora creazione per log/audit
+    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
     
     internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="company")
