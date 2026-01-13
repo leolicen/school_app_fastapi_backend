@@ -62,3 +62,12 @@ def create_internship_entry(
         )
     
     return internship_service.create_internship_entry(entry)
+
+
+
+# -- DELETE INTERNSHIP ENTRY --
+# @router.delete("agreements/{agreement_id}/entries")
+# def delete_internship_entry(
+    
+# ):
+#     pass
