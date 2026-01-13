@@ -1,11 +1,11 @@
 from typing import Annotated, TYPE_CHECKING
 from pydantic import field_validator
 from sqlmodel import Relationship, SQLModel, Field
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
-from sqlalchemy import CheckConstraint, Column, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint, func
 
 if TYPE_CHECKING:
     from .internship_agreement import InternshipAgreementInDB
@@ -33,6 +33,7 @@ class InternshipEntryBase(SQLModel):
     description: Annotated[str, Field(max_length=150)]
     
     
+    
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
 class InternshipEntryInDB(InternshipEntryBase, table=True):
     entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
@@ -40,6 +41,8 @@ class InternshipEntryInDB(InternshipEntryBase, table=True):
     # le date dei turni inseribili non possono essere successive alla data di inserimento
     # né anteriori a 7 giorni dalla stessa
     date: Annotated[date, Field(le=date.today(), ge=date.today()-timedelta(days=7))] # Pydantic check
+    # data e ora creazione per log/audit
+    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
     
    
     __table_args__ = (

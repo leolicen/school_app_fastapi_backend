@@ -1,7 +1,7 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
-from ..models.course import CourseInDB
+from ..models.course import CourseInDB, CoursePublic
 
 
 class CourseService():
@@ -9,7 +9,7 @@ class CourseService():
         self._db = session
         
     # -- GET STUDENT COURSE --
-    def get_student_course(self, course_id: uuid.UUID) -> CourseInDB:
+    def get_student_course(self, course_id: uuid.UUID) -> CoursePublic:
         # seleziono corso in base a id
         get_course_stmt = select(CourseInDB).where(
             CourseInDB.course_id == course_id
@@ -22,4 +22,4 @@ class CourseService():
                 detail="Course not found"
             )
         
-        return student_course
+        return CoursePublic.model_validate(student_course)
