@@ -4,7 +4,7 @@ from typing import Sequence
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import and_, exists
-from sqlmodel import Session, select
+from sqlmodel import Session, delete, select
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
 from ..models.student import StudentPublic
 from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
@@ -104,11 +104,45 @@ class InternshipService():
     
     
     # -- DELETE INTERNSHIP ENTRY --
-    # def delete_internship_entry(self, entry_id: uuid.UUID):
-    #     now = datetime.now(timezone.utc)
-    #     select(InternshipEntryInDB).where(
-    #         InternshipEntryInDB.entry_id == entry_id,
-    #         InternshipEntryInDB.date <= now,
-    #         InternshipEntryInDB.date >= now - timedelta(days=10)
-    #     )
+    def delete_internship_entry(self, entry_id: uuid.UUID) -> dict[str, str]:
+        now = datetime.now(timezone.utc)
         
+        delete_stmt = delete(InternshipEntryInDB).where(
+            InternshipEntryInDB.entry_id == entry_id,
+            InternshipEntryInDB.date >= now - timedelta(days=10)
+        )
+        
+        result = self._db.exec(delete_stmt)
+        deleted_count = result.rowcount
+        self._db.commit()
+        
+        if deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entry not found or too old to be canceled."
+            )
+
+       
+        return {"message": "Entry deleted successfully"}
+    
+    
+    
+    
+    def get_entry_agreement_id_by_entry_id(self, entry_id: uuid.UUID) -> uuid.UUID:
+        stmt = select(InternshipEntryInDB.agreement_id).where(
+            InternshipEntryInDB.entry_id == entry_id
+        )
+        
+        result = self._db.exec(stmt)
+        agreem_id = result.first()
+        
+        if agreem_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Entry not found"
+            )
+        
+        return agreem_id
+    
+    
+ 
