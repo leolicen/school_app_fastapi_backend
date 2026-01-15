@@ -1,8 +1,8 @@
 from typing import Annotated, TYPE_CHECKING, List
 from sqlmodel import Relationship, SQLModel, Field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import DateTime, UniqueConstraint, func
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
@@ -25,6 +25,8 @@ class InternshipAgreementInDB(InternshipAgreementBase, table=True):
     agreement_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
     student_id: Annotated[int, Field(foreign_key="studentindb.student_id", index=True)]
     company_id: Annotated[int, Field(foreign_key="companyindb.company_id")]
+    # data e ora creazione per log/audit
+    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
     
     
     # attributo speciale di SQLAlchemy (declarative class attribute) per definire configurazioni avanzate della tabella
