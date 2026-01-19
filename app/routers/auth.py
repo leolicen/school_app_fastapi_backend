@@ -11,6 +11,11 @@ from ..models.student import StudentCreate
 from ..core.rate_limiting import limiter
 from core.database import SessionDep
 from ..services.auth import AuthService
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 
 # definisco router /auth 
@@ -80,6 +85,7 @@ def refresh_tokens(
 ):
     
     if not refresh_token:
+        logger.warning("Refresh token missing")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token required"
