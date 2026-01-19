@@ -67,22 +67,28 @@ class AuthService():
         )
        
         try:
+            logger.debug("Validating access token")
             # decodifico il token ricevuto
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
             # estraggo il claim "jti" 
             jti = payload.get("jti")
             # controllo che il jti non sia in blacklist redis
             if jti and await rdb.get(f"blacklist:{jti}"):
+                logger.warning("Access token revoked. Validation failed")
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token revoked")
             # estraggo il claim "sub" (contenente l'id)
             student_id = payload.get("sub")
+            
             if student_id is None:
+                logger.warning("Missing 'sub' claim. Invalid access token")
                 raise invalid_token_exception
             
+            logger.debug("Access token validated")
             # restituisco un oggetto TokenData per maggior controllo
             return AccessTokenData(student_id=student_id)
         
         except (jwt.PyJWTError, ValueError):
+            logger.warning("Access token validation failed")
             raise invalid_token_exception
         
  
