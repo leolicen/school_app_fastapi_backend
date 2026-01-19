@@ -2,11 +2,12 @@ from fastapi import FastAPI
 import resend
 from .core.settings import settings
 from .core.rate_limiting import setup_rate_limiter
+from .core.logger import setup_logging
 
 
 
 # istanza della classe FastAPI
-app = FastAPI(title="ITS App API") #,lifespan=lifespan
+app = FastAPI(title="ITS App API",) #,lifespan=lifespan
 
 
 # configurazione globale RESEND una volta sola all'avvio dell'app
@@ -18,3 +19,6 @@ else:
 
 # registro un rate limiter a livello di app
 setup_rate_limiter(app)
+
+# logger config
+setup_logging()
