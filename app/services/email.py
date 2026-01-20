@@ -1,5 +1,8 @@
 import resend
 from app.core.settings import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -9,14 +12,14 @@ class EmailService():
     @staticmethod
     def send_reset_email(email: str, reset_token: str) -> resend.Emails.SendResponse | None:
         
-        # controllo che esista l'api key di resend
+        # check whether resend api key exists
         if not settings.resend_api_key:
-            print(f"Resend API KEY not found. Unable to send email to {email}.")
+            logger.warning(f"Resend API KEY not found. Unable to send email to {email}.")
             return
             
-        # compongo l'url endpoint per reset pwd aggiungendo il ResetToken
+        # compose url to app (frontend) reset pwd page & append ResetToken
         reset_url = f"{settings.pwd_reset_url}?token={reset_token}"
-        # definisco i parametri dell'email da inviare
+        # define email parameters 
         params: resend.Emails.SendParams = {
             "from": f"Acme <{settings.resend_from}>",
             "to": [f"{email}"],
@@ -28,10 +31,15 @@ class EmailService():
         
         try:
             reset_email: resend.Emails.SendResponse = resend.Emails.send(params)
-            print(f"Reset email sent successfully to {email}")
+            logger.info(f"Reset email sent successfully to {email}")
             return reset_email
+        
+        except resend.ResendException as e:
+            logger.warning(f"Resend API failed for {email}: {str(e)}")
+            return None
+        
         except Exception as e:
-            print(f"Failed to send reset email to {email}: {str(e)}")
+            logger.error(f"Unexpected error sending email to {email}: {str(e)}")
             return None
     
        
