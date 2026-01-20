@@ -12,7 +12,7 @@ from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 
 
@@ -84,7 +84,10 @@ class StudentService():
             self._db.refresh(student)
         
         # se è presente uno studente con quelle credenziali, creo un token con il suo id
-        access_token = AuthService.create_access_token(student.student_id, settings.access_token_expire_minutes)
+        access_token = AuthService.create_access_token(
+            student.student_id, 
+            timedelta(minutes=settings.access_token_expire_minutes)
+            )
         
         # creo un refresh token (salvato hashato in db e restituito raw)
         refresh_token = AuthService.create_refresh_token(student.student_id, self._db)
