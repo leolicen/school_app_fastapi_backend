@@ -134,7 +134,7 @@ class AuthService():
             return raw_token
     
         except(SQLAlchemyError, ValueError) as e:
-            logger.error(f"Failed to create reset token for {normalized_email}: {str(e)}")
+            logger.error(f"Failed to create reset token for {email}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot create reset token"
