@@ -14,12 +14,11 @@ class CourseService():
     # -- GET STUDENT COURSE --
     def get_student_course(self, course_id: uuid.UUID) -> CoursePublic:
         
-        with self._db:
-            # select course by id 
-            get_course_stmt = select(CourseInDB).where(
-                CourseInDB.course_id == course_id
-            )
-            student_course: CourseInDB | None = self._db.exec(get_course_stmt).first()
+        # select course by id 
+        get_course_stmt = select(CourseInDB).where(
+            CourseInDB.course_id == course_id
+        )
+        student_course: CourseInDB | None = self._db.exec(get_course_stmt).first()
         
         if not student_course:
             logging.warning(f"Course {course_id} not found")

@@ -196,7 +196,11 @@ class StudentService():
                 token = AuthService.create_reset_token(email=student_email, student_service=self, session=self._db)
                 # provo a inviare l'email
                 background_tasks.add_task(EmailService.send_reset_email, student_email, token)
+                
+                # logger.info(f"Reset queued for {student_email}")
+                
             except ValueError:
+                #  logger.warning(f"Reset request invalid: {student_email}") ??
                 pass 
             
             return {"detail": "If email is valid, request was sent"}
