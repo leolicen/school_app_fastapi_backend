@@ -36,7 +36,8 @@ def get_student_agreement_entries(
     
 ):
     # controllo che l'agreement appartenga allo studente
-    if not internship_service.student_owns_specific_agreement(current_student.student_id, agreement_id):
+    owned_agreement = internship_service.get_owned_agreement(current_student.student_id, agreement_id)
+    if owned_agreement is None:
         raise HTTPException(
             status_code=403,
             detail="Agreement not found or student not authorized"

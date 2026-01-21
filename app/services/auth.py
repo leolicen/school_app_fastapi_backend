@@ -21,36 +21,36 @@ logger = logging.getLogger(__name__)
 class AuthService():
     
 
-    # metodo di MATCH tra PWD IN CHIARO (input utente) e PWD HASHATA salvata nel DB
+    # -- VERIFY PASSWORD -- MATCH between PLAIN PWD (user input) and HASHED PWD saved in DB
     @staticmethod
     def verify_password(plain_password: str | bytes, hashed_password: str | bytes) -> bool:
         return settings.pwd_hash.verify(plain_password, hashed_password)
 
 
-    # metodo per CREARE HASH di una PWD IN CHIARO
+    # -- GET_PASSWORD_HASH -- CREATE HASH of PLAIN PWD --
     @staticmethod
     def get_password_hash(password: str | bytes) -> str:
         return settings.pwd_hash.hash(password)
 
     
-    # -- funzione CREAZIONE TOKEN -- crea token con id studente e valore exp
+    # -- CREATE ACCESS TOKEN -- create token with student id and expiration value
     @staticmethod
     def create_access_token(id: uuid.UUID, expires_delta: timedelta | None = None) -> str:
-            # calcolo expires_delta
+            # calculate expires_delta
             if expires_delta:
                 expire = datetime.now(timezone.utc) + expires_delta
             else:
                 expire = datetime.now(timezone.utc) + timedelta(minutes=15)
             
-           # creo un id per il claim jti (usato per blacklist redis) 
+           # create id for jti claim (used for redis blacklist) 
             jti = str(uuid.uuid4()) 
-            # payload (1/3 elementi del JWT con header e signature) formato da claim "sub" (subject) con valore id univoco + claim "exp" + claim "jti"
+            # 'payload' (1/3 JWT elements together with 'header' and 'signature') made of a "sub" claim (subject) with unique id + "exp" claim + "jti" claim
             payload = {
                 "sub": str(id),
                 "exp": expire,
                 "jti": jti
             }
-            # secret_key e algorithm presi da classe settings che legge variabili d'ambiente da .env
+            # secret_key and algorithm taken from settings class that reads .env variables 
             encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
             
             logger.debug("Access token created")
@@ -58,7 +58,7 @@ class AuthService():
             return encoded_jwt
         
     
-    # -- VALIDATE TOKEN -- decode access token & return STUDENT ID (TokenData)
+    # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
     @staticmethod
     async def validate_access_token(token: str) -> AccessTokenData:
         # create HTTP exception if token validation fails
@@ -144,6 +144,7 @@ class AuthService():
     # -- VALIDATE RESET TOKEN --
     @staticmethod
     def validate_reset_token(raw_reset_token: str, session: Session) -> ResetTokenInDB:
+        
         try:
             # hash raw token
             reset_token_hash = hash_reset_token(raw_reset_token)
@@ -176,7 +177,6 @@ class AuthService():
     def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
         
         try:
-        
             # create raw token
             raw_refresh_token = str(uuid.uuid4())
             # create token hash 
@@ -186,6 +186,7 @@ class AuthService():
                 student_id=student_id,
                 token_hash=hashed_refresh_token
             )
+            
             with session.begin():
                 session.add(refresh_token_in_db)
                 session.refresh(refresh_token_in_db)
@@ -195,7 +196,9 @@ class AuthService():
             return raw_refresh_token
         
         except(SQLAlchemyError, ValueError) as e:
+            
             logger.error(f"Failed to create refresh token for {student_id}: {str(e)}")
+            
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot create refresh token"
@@ -207,7 +210,6 @@ class AuthService():
     def validate_refresh_token(refresh_token: str, student_id: uuid.UUID, session: Session) -> RefreshTokenInDB | None:
         
         try:
-        
             logger.info(f"Validating refresh token for student: {student_id}")
         
             logger.debug(f"Raw token: {refresh_token[:20]}")
@@ -268,15 +270,16 @@ class AuthService():
             return new_refresh_token
         
         except(SQLAlchemyError, ValueError) as e:
+            
             logger.error(f"Refresh token rotation failed for student {student_id}: {str(e)}")
+            
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Refresh token rotation failed"
             )
     
     
-    # -- REFRESH TOKENS -- 
-    # /refresh endpoint function
+    # -- REFRESH TOKENS -- /refresh endpoint function
     @staticmethod
     def refresh_tokens(refresh_token: str, student_id: uuid.UUID, session: Session) -> AccessRefreshToken:
         
