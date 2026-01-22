@@ -62,9 +62,8 @@ class StudentService():
     # --  AUTHENTICATE STUDENT -- during login
     # returns StudentInDB (table model) because the function needs to access 'hashed_password' field + in login function, where the function will be called, only the Token will be returned
     def authenticate_student(self, email: EmailStr, password: str) -> StudentInDB | False:
-        student = self.get_student_by_email(email)
         
-        if not student:
+        if not (student:= self.get_student_by_email(email)): # walrus operator ':='
             return False 
         
         if not AuthService.verify_password(password, student.hashed_password):
