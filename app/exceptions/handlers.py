@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,8 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     
     status_code = {
         "INVALID_CREDENTIALS": 401,
+        "INVALID_REFRESH_TOKEN": 401,
+        "MISSING_REFRESH_TOKEN": 401,
         "INVALID_CURRENT_PASSWORD": 403,
         "INVALID_RESET_TOKEN": 403,
         "STUDENT_NOT_FOUND": 404,
@@ -105,6 +107,28 @@ def invalid_reset_token_handler(request: Request, exc: InvalidResetTokenError) -
     )
     
     
+# -- INVALID REFRESH TOKEN --
+def invalid_refresh_token_handler(request: Request, exc: InvalidRefreshTokenError) -> JSONResponse:
+    
+    logger.warning(f"Invalid/expired refresh token at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
+# -- MISSING REFRESH TOKEN --
+def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenError) -> JSONResponse:
+    
+    logger.warning(f"Missing refresh token at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED, 
+        content={{"code": exc.code, "message": exc.message}}
+    )
+    
+    
     
 
 
@@ -119,3 +143,5 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(StudentNotFoundError, student_not_found_handler)
     app.add_exception_handler(InvalidCurrentPasswordError, invalid_current_password_handler)
     app.add_exception_handler(InvalidResetTokenError, invalid_reset_token_handler)
+    app.add_exception_handler(InvalidRefreshTokenError, invalid_refresh_token_handler)
+    app.add_exception_handler(MissingRefreshTokenError, missing_refresh_token_handler)
