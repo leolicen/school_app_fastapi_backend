@@ -19,6 +19,7 @@ class EmailService():
             
         # compose url to app (frontend) reset pwd page & append ResetToken
         reset_url = f"{settings.pwd_reset_url}?token={reset_token}"
+        
         # define email parameters 
         params: resend.Emails.SendParams = {
             "from": f"Acme <{settings.resend_from}>",

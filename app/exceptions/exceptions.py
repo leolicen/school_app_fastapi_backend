@@ -35,3 +35,9 @@ class StudentNotFoundError(AppError):
 class InvalidCurrentPasswordError(AppError):
     def __init__(self, message: str = "Current password is not correct"):
         super().__init__(message, "INVALID_CURRENT_PASSWORD")
+        
+        
+class InvalidResetTokenError(AppError):
+    def __init__(self, message: str = "Invalid or expired reset token"):
+        super().__init__(message, "INVALID_RESET_TOKEN")
+        

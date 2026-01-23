@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,6 +13,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     status_code = {
         "INVALID_CREDENTIALS": 401,
         "INVALID_CURRENT_PASSWORD": 403,
+        "INVALID_RESET_TOKEN": 403,
         "STUDENT_NOT_FOUND": 404,
         "DUPLICATE_EMAIL": 409,
         "ACCOUNT_EXPIRED": 410,
@@ -92,6 +93,18 @@ def invalid_current_password_handler(request: Request, exc: InvalidCurrentPasswo
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
+
+# -- INVALID RESET TOKEN --
+def invalid_reset_token_handler(request: Request, exc: InvalidResetTokenError) -> JSONResponse:
+    
+    logger.warning(f"Invalid/expired reset token at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
     
 
 
@@ -103,5 +116,6 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(AccountExpiredError, account_expired_handler)
     app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
     app.add_exception_handler(DatabaseError, database_error_handler)
-    app.add_event_handler(StudentNotFoundError, student_not_found_handler)
-    app.add_event_handler(InvalidCurrentPasswordError, invalid_current_password_handler)
+    app.add_exception_handler(StudentNotFoundError, student_not_found_handler)
+    app.add_exception_handler(InvalidCurrentPasswordError, invalid_current_password_handler)
+    app.add_exception_handler(InvalidResetTokenError, invalid_reset_token_handler)
