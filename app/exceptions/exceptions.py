@@ -10,4 +10,9 @@ class AppError(Exception):
 class InvalidCredentialsError(AppError):
     def __init__(self, message: str = "Incorrect email or password"): # message = only parameter => it can change (incorrect email | incorrect password)
         super().__init__(message, "INVALID CREDENTIALS") # code is not passed manually because it's always the same for both cases
+        
+
+class AccountExpiredError(AppError):
+    def __init__(self, message: str = "Account retrieval period expired"):
+        super().__init__(message, "ACCOUNT_EXPIRED")
     

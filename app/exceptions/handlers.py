@@ -1,18 +1,19 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from .exceptions import AppError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError
 import logging
 
 logger = logging.getLogger(__name__)
 
-# default handler for all app errors
+# -- APP ERROR -- default handler for all app errors
 def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     
     logger.error(f"{exc.code} - {exc.message} at {request.url}", exc_info=True) # exc_info=True shows complete traceback
     
     status_code = {
         "INVALID_CREDENTIALS": 401,
-        "NOT_FOUND": 404
+        "NOT_FOUND": 404,
+        "ACCOUNT_EXPIRED": 410
     }.get(exc.code, 400) # gets status_code["exc.code"] value, if key exists, otherwise default 400 
     
     return JSONResponse(
@@ -22,6 +23,27 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
             }
     )
     
+# -- INVALID CREDENTIALS --
+def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
+    
+    logger.warning(f"Invalid login at {request.url}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"error": {"code": exc.code, "message": exc.message}},
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+# -- ACCOUNT EXPIRED --
+def account_expired_handler(request: Request, exc: AccountExpiredError) -> JSONResponse:
+    
+    logger.warning(f"Account retrieval period expired at {request.url} - {exc.message}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_410_GONE, # target resource permanently deleted,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
     
     
 
@@ -30,3 +52,5 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 # -- SETUP HANDLERS --
 def setup_handlers(app: FastAPI):
     app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(InvalidCredentialsError, invalid_credentials_handler)
+    app.add_exception_handler(AccountExpiredError, account_expired_handler)
