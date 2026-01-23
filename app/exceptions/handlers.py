@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     
     status_code = {
         "INVALID_CREDENTIALS": 401,
+        "INVALID_CURRENT_PASSWORD": 403,
         "STUDENT_NOT_FOUND": 404,
         "DUPLICATE_EMAIL": 409,
         "ACCOUNT_EXPIRED": 410,
@@ -80,6 +81,16 @@ def student_not_found_handler(request: Request, exc: StudentNotFoundError) -> JS
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
+
+# -- INVALID CURRENT PASSWORD --
+def invalid_current_password_handler(request: Request, exc: InvalidCurrentPasswordError) -> JSONResponse:
+    
+    logger.warning(f"Current password is not correct at {request.url}: {exc.message}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
     
     
 
@@ -93,3 +104,4 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
     app.add_exception_handler(DatabaseError, database_error_handler)
     app.add_event_handler(StudentNotFoundError, student_not_found_handler)
+    app.add_event_handler(InvalidCurrentPasswordError, invalid_current_password_handler)

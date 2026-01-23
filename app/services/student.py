@@ -15,7 +15,7 @@ from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
-from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError
+from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,7 @@ class StudentService():
         
         # check if current pwd is equal to pwd saved in db 
         if not AuthService.verify_password(pwd_change.current_password, student_in_db.hashed_password):
-            raise HTTPException(status_code=400, detail="Current password is not correct")
+            raise InvalidCurrentPasswordError()
         
         # hash new password
         new_pwd_hash = AuthService.get_password_hash(pwd_change.new_pwd)
@@ -216,8 +216,14 @@ class StudentService():
         # substitute old hashed pwd with new hashed pwd
         student_in_db.hashed_password = new_pwd_hash
         
-        self._db.commit()
-        self._db.refresh(student_in_db)
+        try:
+            self._db.commit()
+            self._db.refresh(student_in_db)
+            
+        except Exception as e:
+            self._db.rollback()
+            raise DatabaseError(f"Failed to change password: {str(e)}")
+        
         
         
     
