@@ -3,6 +3,7 @@ import resend
 from .core.settings import settings
 from .core.rate_limiting import setup_rate_limiter
 from .core.logger import setup_logging
+from .exceptions.handlers import setup_handlers
 
 
 
@@ -22,3 +23,6 @@ setup_rate_limiter(app)
 
 # logger config
 setup_logging()
+
+# exception handlers config
+setup_handlers(app)
