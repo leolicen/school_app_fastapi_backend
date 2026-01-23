@@ -15,6 +15,7 @@ from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
+from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError
 
 logger = logging.getLogger(__name__)
 
@@ -82,17 +83,13 @@ class StudentService():
         student = self.authenticate_student(form_data.username, form_data.password)
         
         if not student:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
+            raise InvalidCredentialsError()
         
         # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
         if student.deleted_at:
             delta = datetime.now(timezone.utc) - student.deleted_at
             if delta.days >= 30:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account retrieval period expired")
+                raise AccountExpiredError()
             
             student.deleted_at = None
             self._db.commit()
