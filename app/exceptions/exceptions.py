@@ -41,3 +41,13 @@ class InvalidResetTokenError(AppError):
     def __init__(self, message: str = "Invalid or expired reset token"):
         super().__init__(message, "INVALID_RESET_TOKEN")
         
+        
+class InvalidRefreshTokenError(AppError):
+    def __init__(self, message: str = "Invalid or expired refresh token"):
+        super().__init__(message, "INVALID_REFRESH_TOKEN")
+        
+        
+class MissingRefreshTokenError(AppError):
+    def __init__(self, message: str = "Refresh token required"):
+        super().__init__(message, "MISSING_REFRESH_TOKEN")
+        

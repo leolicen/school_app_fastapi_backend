@@ -13,7 +13,7 @@ from ..services.student import StudentService
 from ..utils.hash_reset_token import hash_reset_token
 from ..core.redis import rdb
 import logging
-from ..exceptions.exceptions import InvalidResetTokenError
+from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -192,20 +192,19 @@ class AuthService():
         
         try:
             logger.info(f"Validating refresh token for student: {student_id}")
-        
             logger.debug(f"Raw token: {refresh_token[:20]}")
+            
             # hash raw token
             hashed_refresh_token = AuthService.get_password_hash(refresh_token)
-            logger.debug(f"Hashed token: '{hash_reset_token[:20]}'")
+            logger.debug(f"Hashed token: '{hashed_refresh_token[:20]}'")
             
-            with session.begin():
-                # query select existing token in db 
-                check_token_validity = select(RefreshTokenInDB).where(
-                    RefreshTokenInDB.student_id == student_id,
-                    RefreshTokenInDB.token_hash == hashed_refresh_token
-                )
-                # execute query
-                valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
+            # query select existing token in db 
+            check_token_validity = select(RefreshTokenInDB).where(
+                RefreshTokenInDB.student_id == student_id,
+                RefreshTokenInDB.token_hash == hashed_refresh_token
+            )
+            # execute query
+            valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
             
             # if token incorrect or expired (deleted from db), error
             if not valid_token:
@@ -227,8 +226,9 @@ class AuthService():
             return valid_token
         
         except(SQLAlchemyError, ValueError, TypeError) as e:
-            logger.error(f"Refresh token validation failed for student {student_id}: {str(e)}")
+            logger.error(f"DB/hash error during refresh token validation for student {student_id}: {str(e)}")
             return None
+    
     
     
     # -- REFRESH TOKEN ROTATION --
@@ -246,18 +246,15 @@ class AuthService():
             
             # create new refresh token
             new_refresh_token = AuthService.create_refresh_token(student_id, session) 
-            
             logger.debug(f"Refresh token rotated for student {student_id}")
+            
             return new_refresh_token
         
-        except(SQLAlchemyError, ValueError) as e:
+        except Exception as e:
             
             logger.error(f"Refresh token rotation failed for student {student_id}: {str(e)}")
-            
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Refresh token rotation failed"
-            )
+            raise DatabaseError("Refresh token rotation failed")
+    
     
     
     # -- REFRESH TOKENS -- /refresh endpoint function
@@ -270,10 +267,7 @@ class AuthService():
             
             if not valid_refresh_token:
                 logger.warning(f"Invalid refresh token attempt for student {student_id}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid refresh token"
-                )
+                raise InvalidRefreshTokenError()
             
             # rotate token (revoke old token + create new)
             new_refresh_token: str = AuthService.rotate_refresh_token(valid_refresh_token, session)
@@ -284,20 +278,16 @@ class AuthService():
                 timedelta(minutes=settings.access_token_expire_minutes)
             )
             
-            logger.info(f"Tokens refreshed succesfully for student {student_id}")
+            logger.info(f"Tokens refreshed successfully for student {student_id}")
             
             return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
         
-        except HTTPException:
+        except (InvalidRefreshTokenError, DatabaseError):
             raise 
         
-        except(SQLAlchemyError, ValueError) as e:
+        except Exception as e:
             logger.error(f"Tokens refresh failed for student {student_id}: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to refresh tokens"
-            )
-            
+            raise DatabaseError("Failed to refresh tokens")
             
         
  
