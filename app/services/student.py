@@ -15,7 +15,7 @@ from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
-from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError
+from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -116,22 +116,17 @@ class StudentService():
         try:
             # check if an account with the same email already exists 
             if self.get_student_by_email(student.email):
-                raise HTTPException(
-                    status_code=400,
-                    detail="Email already registered"
-                )
+                raise DuplicateEmailError()
             
             # if not, hash given password
             hashed_password = AuthService.get_password_hash(student.password)
             
             # create new StudentInDB model
-            # model_dump creates a dict with student: StudentCreate fields and values
-            # '**' turns dict keys into model properties
-            # 'exclude' allows to exclude 'password' field (with plain pwd) from the dict, it will be substituted by the 'hashed_password' field
             new_student = StudentInDB(
-                **student.model_dump(exclude={"password"}),
+                **student.model_dump(exclude={"password"}), # model_dump creates a dict with student: StudentCreate fields and values | '**' turns dict keys into model properties | 'exclude' allows to exclude 'password' field (with plain pwd) from the dict, it will be substituted by the 'hashed_password' field
                 hashed_password=hashed_password
             )
+            
             # add new student to DB
             self._db.add(new_student)
             self._db.commit()
@@ -140,17 +135,10 @@ class StudentService():
             # convert StudentInDB model into StudentPublic (user response model without hashed_password)
             return StudentPublic.model_validate(new_student)
             
-            
-        except HTTPException:
-            raise
         
-        except Exception:
+        except Exception as e:
             self._db.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail="Internal Server Error"
-            )
-            
+            raise DatabaseError(f"Failed to register student: {str(e)}")
             
             
               

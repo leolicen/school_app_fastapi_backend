@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,9 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     status_code = {
         "INVALID_CREDENTIALS": 401,
         "NOT_FOUND": 404,
-        "ACCOUNT_EXPIRED": 410
+        "DUPLICATE_EMAIL": 409,
+        "ACCOUNT_EXPIRED": 410,
+        "DATABASE_ERROR": 503
     }.get(exc.code, 400) # gets status_code["exc.code"] value, if key exists, otherwise default 400 
     
     return JSONResponse(
@@ -45,6 +47,28 @@ def account_expired_handler(request: Request, exc: AccountExpiredError) -> JSONR
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
+
+# -- DUPLICATE EMAIL --
+def duplicate_email_handler(request: Request, exc: DuplicateEmailError) -> JSONResponse:
+    
+    logger.warning(f"Duplicate email at {request.url} - {exc.message}")
+    
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+
+# -- DATABASE ERROR --
+def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse:
+    
+    logger.warning(f"Database error at {request.url}: {exc.message}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
     
 
 
@@ -54,3 +78,5 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(InvalidCredentialsError, invalid_credentials_handler)
     app.add_exception_handler(AccountExpiredError, account_expired_handler)
+    app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
+    app.add_exception_handler(DatabaseError, database_error_handler)

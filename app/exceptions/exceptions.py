@@ -15,4 +15,13 @@ class InvalidCredentialsError(AppError):
 class AccountExpiredError(AppError):
     def __init__(self, message: str = "Account retrieval period expired"):
         super().__init__(message, "ACCOUNT_EXPIRED")
-    
+        
+
+class DuplicateEmailError(AppError):
+    def __init__(self, message: str = "Email already registered"):
+        super().__init__(message, "DUPLICATE_EMAIL")
+        
+
+class DatabaseError(AppError):
+    def __init__(self, message: str = "Database operation failed"):
+        super().__init__(message, "DATABASE_ERROR")
