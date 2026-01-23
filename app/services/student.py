@@ -227,7 +227,7 @@ class StudentService():
         
         
     
-        # -- RESET PASSWORD REQUEST --
+    # -- RESET PASSWORD REQUEST -- internal error handling for security reasons
     def request_password_reset(self, student_email: EmailStr, background_tasks: BackgroundTasks) -> dict[str, str]:
         
         try:
@@ -237,10 +237,10 @@ class StudentService():
             # attempt email transmission
             background_tasks.add_task(EmailService.send_reset_email, student_email, token)
             
-            # logger.info(f"Reset queued for {student_email}")
+            logger.info(f"Reset queued for {student_email}")
             
         except ValueError:
-            #  logger.warning(f"Reset request invalid: {student_email}") ??
+            logger.warning(f"invalid reset request: {student_email}") 
             pass 
         
         return {"detail": "If email is valid, request was sent"}
@@ -253,19 +253,28 @@ class StudentService():
         # retrieve student from db
         student_in_db = self.get_student_by_email(reset_token.email)
         
+        # unnecessary check (token already validated), only for 100% security
+        if not student_in_db:
+            raise StudentNotFoundError("Student associated with reset token not found")
+        
         # create new pwd hash
         new_pwd_hash = AuthService.get_password_hash(new_password)
         
         # substitute old pwd hash with new one
         student_in_db.hashed_password = new_pwd_hash
         
-        # delete reset token 
-        self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
+        try:
+            # delete reset token 
+            self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
+            
+            self._db.commit()
+            self._db.refresh(student_in_db)
         
-        self._db.commit()
-        self._db.refresh(student_in_db)
+            return {"detail": "Password updated successfully"}
         
-        return {"detail": "Password updated successfully"}
+        except Exception:
+            self._db.rollback()
+            raise DatabaseError("Failed to reset password")
     
     
     

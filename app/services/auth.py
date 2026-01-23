@@ -13,6 +13,7 @@ from ..services.student import StudentService
 from ..utils.hash_reset_token import hash_reset_token
 from ..core.redis import rdb
 import logging
+from ..exceptions.exceptions import InvalidResetTokenError
 
 logger = logging.getLogger(__name__)
 
@@ -101,76 +102,64 @@ class AuthService():
         student_service: StudentService,
         session: Session
         ) -> str:
-        try:
-            # check whether email belongs to registered student
-            student_in_db = student_service.get_student_by_email(email)
-            # if not, log the error internally and exit
-            if not student_in_db:
-                logger.warning("Email not found. Cannot create reset token")
-                raise ValueError("Email not registered") # only within the app
-            
-            # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
-            normalized_email = normalize_email(email)
-            
-            # with block => auto-commit + auto-rollback
-            with session.begin(): 
-                # delete any other already existing token
-                delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
-                session.exec(delete_previuos_tokens)
-                # create new token
-                raw_token = secrets.token_urlsafe(32)
-                # hash token
-                token_hash = hash_reset_token(raw_token)
-                # create new ResetToken with hashed token linked to email
-                reset_token = ResetTokenInDB(
-                    email=normalized_email,
-                    token_hash=token_hash,
-                    expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
-                )
-                session.add(reset_token)
-                
-            logger.debug(f"Reset token created for email {normalized_email}")
         
-            return raw_token
-    
-        except(SQLAlchemyError, ValueError) as e:
-            logger.error(f"Failed to create reset token for {email}: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot create reset token"
+        # check whether email belongs to registered student
+        student_in_db = student_service.get_student_by_email(email)
+        # if not, log the error internally and exit
+        if not student_in_db:
+            logger.warning("Email not found. Cannot create reset token")
+            raise ValueError("Email not registered") # only within the app
+        
+        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
+        normalized_email = normalize_email(email)
+        
+        # with block => auto-commit + auto-rollback
+        with session.begin(): 
+            # delete any other already existing token
+            delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
+            session.exec(delete_previuos_tokens)
+            # create new token
+            raw_token = secrets.token_urlsafe(32)
+            # hash token
+            token_hash = hash_reset_token(raw_token)
+            # create new ResetToken with hashed token linked to email
+            reset_token = ResetTokenInDB(
+                email=normalized_email,
+                token_hash=token_hash,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
             )
+            session.add(reset_token)
+            
+        logger.debug(f"Reset token created for email {normalized_email}")
+    
+        return raw_token
+    
+       
     
     
     # -- VALIDATE RESET TOKEN --
     @staticmethod
     def validate_reset_token(raw_reset_token: str, session: Session) -> ResetTokenInDB:
         
-        try:
-            # hash raw token
-            reset_token_hash = hash_reset_token(raw_reset_token)
-            
-            with session.begin():
-                # query to select valid reset token  from db
-                check_token = select(ResetTokenInDB).where(
-                    ResetTokenInDB.token_hash == reset_token_hash,
-                    ResetTokenInDB.expires_at > datetime.now(timezone.utc)
-                )
-                # execute query => token | None
-                db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
-                
-                if not db_valid_token:
-                    logger.warning("Invalid/expired reset token attempt")
-                    raise HTTPException(status_code=400, detail="Invalid/expired reset token")
-            
-            return db_valid_token
+        # hash raw token
+        reset_token_hash = hash_reset_token(raw_reset_token)
         
-        except(SQLAlchemyError, ValueError, TypeError) as e:
-            logger.error(f"Reset token validation failed: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid reset token"
+        with session.begin():
+            # query to select valid reset token  from db
+            check_token = select(ResetTokenInDB).where(
+                ResetTokenInDB.token_hash == reset_token_hash,
+                ResetTokenInDB.expires_at > datetime.now(timezone.utc)
             )
-    
+            # execute query => token | None
+            db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
+            
+            if not db_valid_token:
+                logger.warning("Invalid/expired reset token attempt")
+                raise InvalidResetTokenError()
+        
+        return db_valid_token
+        
+       
     
     # -- CREATE REFRESH TOKEN --
     @staticmethod 
