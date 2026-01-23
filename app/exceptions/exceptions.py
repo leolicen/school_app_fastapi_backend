@@ -25,3 +25,8 @@ class DuplicateEmailError(AppError):
 class DatabaseError(AppError):
     def __init__(self, message: str = "Database operation failed"):
         super().__init__(message, "DATABASE_ERROR")
+        
+
+class StudentNotFoundError(AppError):
+    def __init__(self, message: str = "Student not found"):
+        super().__init__(message, "STUDENT_NOT_FOUND")

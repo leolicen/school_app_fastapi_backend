@@ -15,7 +15,7 @@ from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
-from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError
+from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +91,14 @@ class StudentService():
             if delta.days >= 30:
                 raise AccountExpiredError()
             
-            student.deleted_at = None
-            self._db.commit()
-            self._db.refresh(student)
+            try:
+                student.deleted_at = None
+                self._db.commit()
+                self._db.refresh(student)
+                
+            except Exception:
+                self._db.rollback()
+                raise DatabaseError("Failed to reactivate account")
         
         # if student is authenticated, create access token with their id
         access_token = AuthService.create_access_token(
@@ -113,20 +118,20 @@ class StudentService():
      # -- REGISTER STUDENT -- create new student
     def register_student(self, student: StudentCreate) -> StudentPublic:
         
+        # check if an account with the same email already exists 
+        if self.get_student_by_email(student.email):
+            raise DuplicateEmailError()
+        
+        # if not, hash given password
+        hashed_password = AuthService.get_password_hash(student.password)
+        
+        # create new StudentInDB model
+        new_student = StudentInDB(
+            **student.model_dump(exclude={"password"}), # model_dump creates a dict with student: StudentCreate fields and values | '**' turns dict keys into model properties | 'exclude' allows to exclude 'password' field (with plain pwd) from the dict, it will be substituted by the 'hashed_password' field
+            hashed_password=hashed_password
+        )
+        
         try:
-            # check if an account with the same email already exists 
-            if self.get_student_by_email(student.email):
-                raise DuplicateEmailError()
-            
-            # if not, hash given password
-            hashed_password = AuthService.get_password_hash(student.password)
-            
-            # create new StudentInDB model
-            new_student = StudentInDB(
-                **student.model_dump(exclude={"password"}), # model_dump creates a dict with student: StudentCreate fields and values | '**' turns dict keys into model properties | 'exclude' allows to exclude 'password' field (with plain pwd) from the dict, it will be substituted by the 'hashed_password' field
-                hashed_password=hashed_password
-            )
-            
             # add new student to DB
             self._db.add(new_student)
             self._db.commit()
@@ -135,17 +140,20 @@ class StudentService():
             # convert StudentInDB model into StudentPublic (user response model without hashed_password)
             return StudentPublic.model_validate(new_student)
             
-        
         except Exception as e:
             self._db.rollback()
             raise DatabaseError(f"Failed to register student: {str(e)}")
+        
+   
             
-            
+        
               
     # -- REGISTER & LOGIN --
     def register_and_login(self, student: StudentCreate) -> AccessRefreshToken:
+        
         # register new student
         new_student = self.register_student(student)
+        
         # create OAuth2PasswordRequestForm instance
         form_data = OAuth2PasswordRequestForm(
             # new student email
@@ -153,6 +161,7 @@ class StudentService():
             # plain pwd before hashing
             password=student.password
         )
+        
         # return access token after login
         return self.login_for_access_token(form_data)
     
@@ -161,31 +170,41 @@ class StudentService():
     
     # -- UPDATE STUDENT --
     def update_student(self, current_student_id: uuid.UUID, student_to_update: StudentUpdate) -> StudentPublic:
+        
         # get student to update from db
         student_in_db = self._db.get(StudentInDB, current_student_id)
         
         if not student_in_db:
-            raise HTTPException(status_code=404, detail="Student not found")
+            raise StudentNotFoundError()
         
         # dump updated info
         updated_info = student_to_update.model_dump(exclude_unset=True)
+        
         # update student in db 
         student_in_db.sqlmodel_update(updated_info)
         
-        self._db.add(student_in_db)
-        self._db.commit()
-        self._db.refresh(student_in_db)
+        try:
+            self._db.add(student_in_db)
+            self._db.commit()
+            self._db.refresh(student_in_db)
         
-        return StudentPublic.model_validate(student_in_db)
+            return StudentPublic.model_validate(student_in_db)
+        
+        except Exception:
+            self._db.rollback()
+            raise DatabaseError("Failed to update student")
+    
+    
     
     
     # -- CHANGE PASSWORD -- 
     def change_password(self, current_student: StudentPublic, pwd_change: ChangePassword) -> None:
+        
         # retrieve student from db
         student_in_db = self.get_student_by_email(current_student.email)
         
         if not student_in_db:
-            raise HTTPException(status_code=404, detail="Student not found")
+            raise StudentNotFoundError()
         
         # check if current pwd is equal to pwd saved in db 
         if not AuthService.verify_password(pwd_change.current_password, student_in_db.hashed_password):
