@@ -165,33 +165,25 @@ class AuthService():
     @staticmethod 
     def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
         
-        try:
-            # create raw token
-            raw_refresh_token = str(uuid.uuid4())
-            # create token hash 
-            hashed_refresh_token = AuthService.get_password_hash(raw_refresh_token)
-            # crete RefreshTokenInDB
-            refresh_token_in_db = RefreshTokenInDB(
-                student_id=student_id,
-                token_hash=hashed_refresh_token
-            )
-            
-            with session.begin():
-                session.add(refresh_token_in_db)
-                session.refresh(refresh_token_in_db)
-            
-            logger.debug(f"Refresh token created for student {student_id}")
-            
-            return raw_refresh_token
+        # create raw token
+        raw_refresh_token = str(uuid.uuid4())
         
-        except(SQLAlchemyError, ValueError) as e:
-            
-            logger.error(f"Failed to create refresh token for {student_id}: {str(e)}")
-            
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot create refresh token"
-            )
+        # create token hash 
+        hashed_refresh_token = AuthService.get_password_hash(raw_refresh_token)
+        
+        # crete RefreshTokenInDB
+        refresh_token_in_db = RefreshTokenInDB(
+            student_id=student_id,
+            token_hash=hashed_refresh_token
+        )
+        
+        session.add(refresh_token_in_db) # session.commit() will be executed from the function that calls this method (e.g. login_for_access_token())
+        
+        logger.debug(f"Refresh token created for student {student_id}")
+        
+        return raw_refresh_token
+        
+        
     
     
     # -- VALIDATE REFRESH TOKEN -- -> token | None
