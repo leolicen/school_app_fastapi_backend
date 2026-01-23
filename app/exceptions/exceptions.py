@@ -30,3 +30,8 @@ class DatabaseError(AppError):
 class StudentNotFoundError(AppError):
     def __init__(self, message: str = "Student not found"):
         super().__init__(message, "STUDENT_NOT_FOUND")
+        
+
+class InvalidCurrentPasswordError(AppError):
+    def __init__(self, message: str = "Current password is not correct"):
+        super().__init__(message, "INVALID_CURRENT_PASSWORD")
