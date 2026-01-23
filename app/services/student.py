@@ -85,32 +85,39 @@ class StudentService():
         if not student:
             raise InvalidCredentialsError()
         
-        # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
-        if student.deleted_at:
-            delta = datetime.now(timezone.utc) - student.deleted_at
-            if delta.days >= 30:
-                raise AccountExpiredError()
-            
-            try:
-                student.deleted_at = None
-                self._db.commit()
-                self._db.refresh(student)
+        try:
+            # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
+            if student.deleted_at:
+                delta = datetime.now(timezone.utc) - student.deleted_at
                 
-            except Exception:
-                self._db.rollback()
-                raise DatabaseError("Failed to reactivate account")
+                if delta.days >= 30:
+                    raise AccountExpiredError()
+    
+                student.deleted_at = None
+                   
+            # if student is authenticated, create access token with their id
+            access_token = AuthService.create_access_token(
+                student.student_id, 
+                timedelta(minutes=settings.access_token_expire_minutes)
+                )
         
-        # if student is authenticated, create access token with their id
-        access_token = AuthService.create_access_token(
-            student.student_id, 
-            timedelta(minutes=settings.access_token_expire_minutes)
-            )
+            # create refresh token (token hash saved in db + raw token returned)
+            refresh_token = AuthService.create_refresh_token(student.student_id, self._db)
+            
+            self._db.commit()
+            
+            return AccessRefreshToken(access_token=access_token, token_type="bearer", refresh_token=refresh_token) 
+            
+        except Exception as e:
+            self._db.rollback()
+            raise DatabaseError(f"Login failed: {str(e)}")
+            
+            
+            
+            
         
-        # create refresh token (token hash saved in db + raw token returned)
-        refresh_token = AuthService.create_refresh_token(student.student_id, self._db)
         
-        
-        return AccessRefreshToken(access_token=access_token, token_type="bearer", refresh_token=refresh_token) 
+       
     
     
     
