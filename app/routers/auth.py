@@ -37,6 +37,7 @@ def login(
     return student_service.login_for_access_token(form_data)
 
 
+
 # -- REGISTRAZIONE -- (registrazione + login automatico)
 # endpoint NON PROTETTO
 @router.post("/register", response_model=AccessRefreshToken)
