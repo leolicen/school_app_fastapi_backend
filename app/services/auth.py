@@ -37,6 +37,7 @@ class AuthService():
     # -- CREATE ACCESS TOKEN -- create token with student id and expiration value
     @staticmethod
     def create_access_token(id: uuid.UUID, expires_delta: timedelta | None = None) -> str:
+        
             # calculate expires_delta
             if expires_delta:
                 expire = datetime.now(timezone.utc) + expires_delta
@@ -49,7 +50,7 @@ class AuthService():
             payload = {
                 "sub": str(id),
                 "exp": expire,
-                "jti": jti
+                "jti": jti # JWT ID
             }
             # secret_key and algorithm taken from settings class that reads .env variables 
             encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
@@ -62,12 +63,6 @@ class AuthService():
     # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
     @staticmethod
     async def validate_access_token(token: str) -> AccessTokenData:
-        # create HTTP exception if token validation fails
-        invalid_token_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
        
         try:
             logger.debug("Validating access token")
@@ -75,24 +70,32 @@ class AuthService():
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
             # extract "jti" claim
             jti = payload.get("jti")
+            
             # check whether jti is redis blacklisted 
             if jti and await rdb.get(f"blacklist:{jti}"):
                 logger.warning("Access token revoked. Validation failed")
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token revoked")
+                raise jwt.InvalidTokenError("Token revoked")
+            
             # extract "sub" claim (contains id)
             student_id = payload.get("sub")
             
             if student_id is None:
                 logger.warning("Missing 'sub' claim. Invalid access token")
-                raise invalid_token_exception
+                raise jwt.InvalidTokenError("Missing student ID")
             
             logger.debug("Access token validated")
             # return TokenData object for better control
             return AccessTokenData(student_id=student_id)
+    
+          
+        except jwt.PyJWTError: 
+            logger.error("PyJWTError - check settings")
+            raise
         
-        except (jwt.PyJWTError, ValueError):
-            logger.warning("Access token validation failed")
-            raise invalid_token_exception
+        except ValueError:
+            logger.warning("Payload ValueError")
+            raise jwt.InvalidTokenError("Invalid payload")
+        
         
  
     # -- CREATE RESET TOKEN -- for password reset request
