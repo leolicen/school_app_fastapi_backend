@@ -1,7 +1,9 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+import jwt
 from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError
 import logging
+from jwt import InvalidTokenError
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     
     status_code = {
         "INVALID_CREDENTIALS": 401,
+        "INVALID_ACCESS_TOKEN": 401,
         "INVALID_REFRESH_TOKEN": 401,
         "MISSING_REFRESH_TOKEN": 401,
         "INVALID_CURRENT_PASSWORD": 403,
@@ -19,6 +22,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         "STUDENT_NOT_FOUND": 404,
         "DUPLICATE_EMAIL": 409,
         "ACCOUNT_EXPIRED": 410,
+        "INTERNAL_ERROR": 500,
         "DATABASE_ERROR": 503
     }.get(exc.code, 400) # gets status_code["exc.code"] value, if key exists, otherwise default 400 
     
@@ -37,8 +41,33 @@ def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) 
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"error": {"code": exc.code, "message": exc.message}},
+        headers={"WWW-Authenticate": "Bearer"} # tells the client to authenticate via bearer token
+    )
+    
+
+
+# -- PyJWTError -- base class =>  catches everything (false signature, wrong secret key, wrong algorithm) => server error
+def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError):
+    
+    logger.critical(f"PyJWTError at {request.url}: {exc}")
+    
+    return JSONResponse(
+        status_code=500, 
+        content={"error": {"code": "INTERNAL_ERROR"}}
+        )
+
+    
+# -- INVALID ACCESS TOKEN -- PyJWTError subclass  => catches invalid tokens only (false signature, decode fail, exp) => client error
+def invalid_access_token_handler(request: Request, exc: InvalidTokenError):
+    
+    logger.warning(f"JWT InvalidTokenError at {request.url}: {exc}")
+    
+    return JSONResponse(
+        status_code=401,
+        content={"error": {"code": "INVALID_ACCESS_TOKEN", "message": "Invalid access token"}},
         headers={"WWW-Authenticate": "Bearer"}
     )
+
 
 
 # -- ACCOUNT EXPIRED --
@@ -137,6 +166,8 @@ def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenErro
 def setup_handlers(app: FastAPI):
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(InvalidCredentialsError, invalid_credentials_handler)
+    app.add_exception_handler(jwt.PyJWTError, pyjwt_error_handler)
+    app.add_exception_handler(InvalidTokenError, invalid_access_token_handler)
     app.add_exception_handler(AccountExpiredError, account_expired_handler)
     app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
     app.add_exception_handler(DatabaseError, database_error_handler)

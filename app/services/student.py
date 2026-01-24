@@ -1,9 +1,9 @@
 import uuid
-from fastapi import HTTPException, status, BackgroundTasks
+from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
 from pydantic import EmailStr
-from sqlalchemy import delete, update
+from sqlalchemy import delete, update, SQLAlchemyError
 from sqlmodel import Session, select
 from app.core.settings import settings
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
@@ -25,18 +25,12 @@ class StudentService():
     def __init__(self, session: Session): 
         self._db = session
         
-        # creo HTTP exception in caso di errore di validazione token
-        self.invalid_token_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-        
     
     # --  GET STUDENT BY EMAIL -- 
     # checks if student exists by email
     # returns StudentInDB (table model) because authenticate_student() needs to access 'hashed_password' field
     def get_student_by_email(self, email: EmailStr) -> StudentInDB | None:
+        
         normalized_email = normalize_email(email)
         
         return self._db.exec(
@@ -45,18 +39,17 @@ class StudentService():
         
         
         
-        
     # --  GET STUDENT BY ID -- 
     # checks if student exists by id
     # returns StudentPublic because get_current_student(), where the function is called, doesn't need to access 'hashed_password' field + it's safer
     # _db.get(Student, id) would work as well because id is Student's PK (primary key)
     def get_student_by_id(self, id: uuid.UUID) -> StudentPublic | None:
+        
         student = self._db.exec(
             select(StudentInDB).where(StudentInDB.student_id == id)
         ).first()
         
         return StudentPublic.model_validate(student)
-        
         
         
         
@@ -74,7 +67,6 @@ class StudentService():
     
       
       
-      
     # --  LOGIN FOR ACCESS TOKEN -- 
     # login for ACTIVE & INACTIVE students (gives access to the app), specific endpoints will check for 'is_active' field as well
     def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> AccessRefreshToken:
@@ -88,6 +80,7 @@ class StudentService():
         try:
             # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
             if student.deleted_at:
+                
                 delta = datetime.now(timezone.utc) - student.deleted_at
                 
                 if delta.days >= 30:
@@ -114,14 +107,6 @@ class StudentService():
             
             
             
-            
-        
-        
-       
-    
-    
-    
-    
      # -- REGISTER STUDENT -- create new student
     def register_student(self, student: StudentCreate) -> StudentPublic:
         
@@ -152,9 +137,7 @@ class StudentService():
             raise DatabaseError(f"Failed to register student: {str(e)}")
         
    
-            
-        
-              
+                  
     # -- REGISTER & LOGIN --
     def register_and_login(self, student: StudentCreate) -> AccessRefreshToken:
         
@@ -171,7 +154,6 @@ class StudentService():
         
         # return access token after login
         return self.login_for_access_token(form_data)
-    
     
     
     
@@ -200,7 +182,6 @@ class StudentService():
         except Exception:
             self._db.rollback()
             raise DatabaseError("Failed to update student")
-    
     
     
     
@@ -233,7 +214,6 @@ class StudentService():
         
         
         
-    
     # -- RESET PASSWORD REQUEST -- internal error handling for security reasons
     def request_password_reset(self, student_email: EmailStr, background_tasks: BackgroundTasks) -> dict[str, str]:
         
@@ -251,7 +231,6 @@ class StudentService():
             pass 
         
         return {"detail": "If email is valid, request was sent"}
-    
     
     
     
@@ -285,7 +264,6 @@ class StudentService():
     
     
     
-    
     # -- CONFIRM PASSWORD RESET -- 
     def confirm_password_reset(self, raw_reset_token: str, new_password: str) -> dict[str, str]:
         
@@ -297,51 +275,69 @@ class StudentService():
         
      
  
-    
     # -- REVOKE REFRESH TOKEN -- (only when logging out)
     def revoke_refresh_token(self, student_id: uuid.UUID) -> int:
         
-        # query to update refresh token "revoked_at" field
-        revoke_refresh_token = update(RefreshTokenInDB).where(
-            RefreshTokenInDB.student_id == student_id,
-            RefreshTokenInDB.revoked_at.is_(None),
-            RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
-        ).values(revoked_at=datetime.now(timezone.utc))
+        try:
+            # query to update refresh token "revoked_at" field
+            revoke_refresh_token = update(RefreshTokenInDB).where(
+                RefreshTokenInDB.student_id == student_id,
+                RefreshTokenInDB.revoked_at.is_(None),
+                RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
+            ).values(revoked_at=datetime.now(timezone.utc))
+            
+            result = self._db.exec(revoke_refresh_token)
         
-        result = self._db.exec(revoke_refresh_token)
+            rowcount = result.rowcount
+            
+            self._db.commit()
+            
+            if rowcount == 0:
+                logger.debug(f"No active refresh token for student {student_id}")
+            else:
+                logger.info(f"Revoked {rowcount} refresh token(s) for student {student_id}")
+            
+            
+            return rowcount
         
-        rowcount = result.rowcount
-        
-        self._db.commit()
-        
-        if rowcount == 0:
-            print(f"No active refresh token for student {student_id}")
-        
-        
-        return rowcount
-    
+        except SQLAlchemyError as e:
+            self._db.rollback()
+            logger.error(f"Failed to revoke refresh tokens for {student_id}: {str(e)}")
+            raise DatabaseError("Failed to revoke refresh tokens")
     
     
     
     # -- BLACKLIST ACCESS TOKEN -- (used in logout())
     async def blacklist_access_token(self, access_token: str):
         
-        # decode received token
-        payload = jwt.decode(
-            access_token, 
-            settings.secret_key, 
-            algorithms=[settings.algorithm],
-            options={"verify_exp": False}
-            )
+        try:
+            # decode received token
+            payload = jwt.decode(
+                access_token, 
+                settings.secret_key, 
+                algorithms=[settings.algorithm],
+                options={"verify_exp": False}
+                )
+            
+            # extract jti
+            jti = payload["jti"]
+            # extract expiration
+            exp = payload["exp"]
+            # calculate time to live
+            ttl = max(0, exp - int(datetime.now(timezone.utc).timestamp()))  # tells redis how much time the token must be blacklisted before deletion
+            
+            if ttl > 0:
+                # insert JTI in BLACK LIST REDIS
+                await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
+                # 1 indicates that the inserted key exists in the list (1 because it's the smallest value possible, any other would be potentially accepted in the same way)
+                logger.debug(f"Blacklisted access token {jti[:8]}... (TTL: {ttl}s)")
         
-        # extract jti
-        jti = payload["jti"]
-        # extract expiration
-        ttl = payload["exp"] - datetime.now(timezone.utc).timestamp()
+        except jwt.InvalidTokenError:
+            logger.warning("Invalid access token provided for blacklist")
         
-        # insert JTI in BLACK LIST REDIS
-        await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
-        # 1 indicates that the inserted key exists in the list (1 because it's the smallest value possible, any other would be potentially accepted in the same way)
+        except Exception as e:
+            logger.error(f"Redis blacklist failed: {str(e)}")
+    
     
     
     # -- LOGOUT -- 
@@ -351,24 +347,34 @@ class StudentService():
         self.revoke_refresh_token(student_id)
         
         # ACCESS TOKEN IN BLACKLIST REDIS
-        self.blacklist_access_token(access_token)
+        await self.blacklist_access_token(access_token)
         
-       
+        logger.info(f"Student {student_id} logged out")
+        
+        return
+        
        
        
     # -- DELETE STUDENT -- (soft delete)
     async def delete_student(self, student: StudentPublic, access_token: str) -> dict[str, str]:
         
-        # retrieve student from db
-        student_in_db = self.get_student_by_email(student.email)
-        # set 'deleted_at' time
-        student_in_db.deleted_at = datetime.now(timezone.utc)
+        try:
+            with self._db.begin():
+                # retrieve student from db
+                student_in_db = self.get_student_by_email(student.email)
+                # set 'deleted_at' time
+                student_in_db.deleted_at = datetime.now(timezone.utc)
+                
+            # logout
+            await self.logout(student.student_id, access_token)
+            
+            logger.info(f"Student {student.student_id} soft deleted")
+            
+            return {"detail": "Account deletion requested. Login within 30 days to recover."}
         
-        self._db.commit()
-        
-        # logout
-        await self.logout(student.student_id, access_token)
-        
-        return {"detail": "Account deletion requested. Login within 30 days to recover."}
+        except SQLAlchemyError as e :
+            logger.error(f"DB delete failed: {e}")
+            
+            raise DatabaseError("Delete operation failed")
     
    
