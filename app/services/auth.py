@@ -4,7 +4,6 @@ from sqlalchemy import select, SQLAlchemyError
 from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 import jwt
 from ..core.settings import settings
-from fastapi import HTTPException, status
 from pydantic import EmailStr
 from ..utils.validators import normalize_email
 from sqlmodel import delete, Session
@@ -25,13 +24,17 @@ class AuthService():
     # -- VERIFY PASSWORD -- MATCH between PLAIN PWD (user input) and HASHED PWD saved in DB
     @staticmethod
     def verify_password(plain_password: str | bytes, hashed_password: str | bytes) -> bool:
+        
         return settings.pwd_hash.verify(plain_password, hashed_password)
+
 
 
     # -- GET_PASSWORD_HASH -- CREATE HASH of PLAIN PWD --
     @staticmethod
     def get_password_hash(password: str | bytes) -> str:
+        
         return settings.pwd_hash.hash(password)
+
 
     
     # -- CREATE ACCESS TOKEN -- create token with student id and expiration value
@@ -58,6 +61,7 @@ class AuthService():
             logger.debug("Access token created")
             
             return encoded_jwt
+        
         
     
     # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
@@ -108,10 +112,11 @@ class AuthService():
         
         # check whether email belongs to registered student
         student_in_db = student_service.get_student_by_email(email)
+        
         # if not, log the error internally and exit
         if not student_in_db:
             logger.warning("Email not found. Cannot create reset token")
-            raise ValueError("Email not registered") # only within the app
+            raise ValueError("Email not registered") # only within the app => intercepted by request_password_reset with 'pass' => no info to the client
         
         # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
         normalized_email = normalize_email(email)
@@ -138,7 +143,6 @@ class AuthService():
         return raw_token
     
        
-    
     
     # -- VALIDATE RESET TOKEN --
     @staticmethod
@@ -247,8 +251,9 @@ class AuthService():
                 refresh_token.revoked_at = datetime.now(timezone.utc)
                 session.add(refresh_token)
             
-            # create new refresh token
-            new_refresh_token = AuthService.create_refresh_token(student_id, session) 
+                # create new refresh token
+                new_refresh_token = AuthService.create_refresh_token(student_id, session) 
+                
             logger.debug(f"Refresh token rotated for student {student_id}")
             
             return new_refresh_token
