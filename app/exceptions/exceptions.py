@@ -51,3 +51,7 @@ class MissingRefreshTokenError(AppError):
     def __init__(self, message: str = "Refresh token required"):
         super().__init__(message, "MISSING_REFRESH_TOKEN")
         
+
+class CourseNotFoundError(AppError):
+    def __init__(self, message: str = "Course not found"):
+        super().__init__(message, "COURSE_NOT_FOUND")
