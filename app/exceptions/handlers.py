@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 import jwt
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError
 import logging
 from jwt import InvalidTokenError
 
@@ -20,6 +20,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         "INVALID_CURRENT_PASSWORD": 403,
         "INVALID_RESET_TOKEN": 403,
         "STUDENT_NOT_FOUND": 404,
+        "COURSE_NOT_FOUND": 404,
         "DUPLICATE_EMAIL": 409,
         "ACCOUNT_EXPIRED": 410,
         "INTERNAL_ERROR": 500,
@@ -47,7 +48,7 @@ def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) 
 
 
 # -- PyJWTError -- base class =>  catches everything (false signature, wrong secret key, wrong algorithm) => server error
-def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError):
+def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError) -> JSONResponse:
     
     logger.critical(f"PyJWTError at {request.url}: {exc}")
     
@@ -58,7 +59,7 @@ def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError):
 
     
 # -- INVALID ACCESS TOKEN -- PyJWTError subclass  => catches invalid tokens only (false signature, decode fail, exp) => client error
-def invalid_access_token_handler(request: Request, exc: InvalidTokenError):
+def invalid_access_token_handler(request: Request, exc: InvalidTokenError) -> JSONResponse:
     
     logger.warning(f"JWT InvalidTokenError at {request.url}: {exc}")
     
@@ -157,7 +158,15 @@ def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenErro
         content={{"code": exc.code, "message": exc.message}}
     )
     
+
+def course_not_found_handler(request: Request, exc: CourseNotFoundError) -> JSONResponse:
     
+    logger.warning(f"Course not found at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
     
 
 
@@ -176,3 +185,4 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(InvalidResetTokenError, invalid_reset_token_handler)
     app.add_exception_handler(InvalidRefreshTokenError, invalid_refresh_token_handler)
     app.add_exception_handler(MissingRefreshTokenError, missing_refresh_token_handler)
+    app.add_exception_handler(CourseNotFoundError, course_not_found_handler)
