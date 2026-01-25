@@ -10,6 +10,7 @@ from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgr
 from ..models.student import StudentPublic
 from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
 import logging
+from ..exceptions.exceptions import AgreementForbiddenError
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class InternshipService():
         self._db = session
         
     
-    # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company)
+    # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company) || OK ||
     def get_internship_agreements_list(self, current_student: StudentPublic) -> List[InternshipAgreementPublic]:
         
         # retrieve agreement/s connected to student id (active & non-active)
@@ -36,7 +37,7 @@ class InternshipService():
     
     
     
-    # -- GET OWNED AGREEMENT -- retrieve agreement only if owned
+    # -- GET OWNED AGREEMENT -- retrieve agreement only if owned || OK ||
     def get_owned_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> InternshipAgreementPublic | None:
         
         # retrieve agreement only if it belongs to the student
@@ -46,15 +47,12 @@ class InternshipService():
                 InternshipAgreementInDB.agreement_id == agreement_id
             )
         ).first()
-        
-        if agreement is None:
-            return None
 
-        return InternshipAgreementPublic.model_validate(agreement) 
+        return InternshipAgreementPublic.model_validate(agreement) if agreement else None
   
     
     
-    # -- STUDENT OWNS SPECIFIC ACTIVE AGREEMENT --
+    # -- STUDENT OWNS SPECIFIC ACTIVE AGREEMENT -- || OK ||
     def student_owns_specific_active_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> bool:
         
         # retrieve owned agreement
@@ -66,7 +64,7 @@ class InternshipService():
     
     
     
-    # -- GET INTERNSHIP ENTRIES LIST --
+    # -- GET INTERNSHIP ENTRIES LIST -- || OK ||
     def get_internship_entries_list(self, agreement_id: uuid.UUID) -> List[InternshipEntryPublic]:
         
         # retrieve specific agreement entries in ascending order (from oldest to newest)
@@ -83,7 +81,7 @@ class InternshipService():
     
     
     # -- GET REMAINING HOURS --
-    def get_remaining_hours(self, agreement_id: uuid.UUID) -> Decimal | None:
+    def get_remaining_hours(self, agreement_id: uuid.UUID) -> Decimal:
         
         # retrieve total hours and attended hours from agreement
         result = self._db.exec(select(
@@ -94,8 +92,10 @@ class InternshipService():
         )
         ).first()
         
-        if result is None:
-            return None
+        if result is None: # None only if agreement does not exist
+            logger.warning(f"Agreement {agreement_id} missing despite ownership check")
+            return AgreementForbiddenError()
+
         
         total_hours, attended_hours = result
         attended_hours = attended_hours or Decimal("0") # in case of None
@@ -111,15 +111,7 @@ class InternshipService():
     def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
         # retrieve agreement remaining hours
-        remaining_hours: Decimal | None = self.get_remaining_hours(agreement_id)
-        
-        # second check if agreement exists (first one in the endpoint)
-        if remaining_hours is None:
-            logger.warning("Agreement not found")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Agreement not found"
-            )
+        remaining_hours: Decimal = self.get_remaining_hours(agreement_id)
             
         # check if internship is already over
         if remaining_hours <= 0:
@@ -242,3 +234,17 @@ class InternshipService():
     
     
      
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+         
+  
