@@ -55,3 +55,11 @@ class MissingRefreshTokenError(AppError):
 class CourseNotFoundError(AppError):
     def __init__(self, message: str = "Course not found"):
         super().__init__(message, "COURSE_NOT_FOUND")
+        
+class AgreementForbiddenError(AppError):
+    def __init__(self, message: str = "Agreement not found or not accessible"):
+        super().__init__(message, "AGREEMENT_FORBIDDEN")
+        
+class AgreementEntryMismatchError(AppError):
+    def __init__(self, message: str = "Agreement mismatch"):
+        super().__init__(message, "AGREEMENT_MISMATCH")

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 import jwt
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError
 import logging
 from jwt import InvalidTokenError
 
@@ -158,13 +158,33 @@ def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenErro
         content={{"code": exc.code, "message": exc.message}}
     )
     
-
+# -- COURSE NOT FOUND --
 def course_not_found_handler(request: Request, exc: CourseNotFoundError) -> JSONResponse:
     
     logger.warning(f"Course not found at {request.url}", exc_info=True)
     
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+
+# --AGREEMENT FORBIDDEN --
+def agreement_forbidden_handler(request: Request, exc: AgreementForbiddenError) -> JSONResponse:
+    
+    logger.warning(f"Agreement forbidden at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+# --AGREEMENT MISMATCH --
+def agreement_mismatch_handler(request: Request, exc: AgreementEntryMismatchError) -> JSONResponse:
+    
+    logger.warning(f"Agreement mismatch at {request.url}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, 
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
@@ -186,3 +206,5 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(InvalidRefreshTokenError, invalid_refresh_token_handler)
     app.add_exception_handler(MissingRefreshTokenError, missing_refresh_token_handler)
     app.add_exception_handler(CourseNotFoundError, course_not_found_handler)
+    app.add_exception_handler(AgreementForbiddenError, agreement_forbidden_handler)
+    app.add_exception_handler(AgreementEntryMismatchError, agreement_mismatch_handler)
