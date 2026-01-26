@@ -10,7 +10,7 @@ from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgr
 from ..models.student import StudentPublic
 from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
 import logging
-from ..exceptions.exceptions import AgreementForbiddenError
+from ..exceptions.exceptions import AgreementForbiddenError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class InternshipService():
     
     
     
-    # -- GET REMAINING HOURS --
+    # -- GET REMAINING HOURS -- || OK ||
     def get_remaining_hours(self, agreement_id: uuid.UUID) -> Decimal:
         
         # retrieve total hours and attended hours from agreement
@@ -107,7 +107,7 @@ class InternshipService():
 
 
     
-    # -- CREATE INTERNSHIP ENTRY --
+    # -- CREATE INTERNSHIP ENTRY -- || OK ||
     def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
         # retrieve agreement remaining hours
@@ -116,10 +116,7 @@ class InternshipService():
         # check if internship is already over
         if remaining_hours <= 0:
             logger.warning("Internship completed. Cannot create new entry.")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Internship completed. Cannot create new entry."
-            )
+            raise InternshipCompletedError()
             
         # get total hours to add
         entry_hours = entry.end_time - entry.start_time
@@ -127,10 +124,7 @@ class InternshipService():
         # check if entry hours are more than remaining ones
         if entry_hours > remaining_hours:
             logger.warning(f"Student is trying to insert {entry_hours} hours, but only {remaining_hours} are left")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot insert more than {remaining_hours} hours. Only {remaining_hours} hours left."
-            )
+            raise InternshipHoursExceededError(requested=entry_hours, remaining=remaining_hours)
         
         # check perfect duplicates with UniqueConstraint in InDB model
         db_entry = InternshipEntryInDB.model_validate(entry)
@@ -152,33 +146,30 @@ class InternshipService():
     
         if overlap_exists:
             logger.warning("Overlapping entry time")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Overlapping entry time"
-            )
+            raise InternshipOverlappingEntryError()
         
-        # add db_entry to db
-        self._db.add(db_entry)
+        with self._db.begin():
         
-        # UPDATE AGREEMENT.ATTENDED_HOURS 
-        agreement = self._db.get(InternshipAgreementInDB, agreement_id)
-        
-        if agreement:
-            current_attended = agreement.attended_hours or Decimal("0")
-            updated_attended = current_attended + entry_hours
-            agreement.attended_hours = min(updated_attended, agreement.total_hours)
-            self._db.add(agreement)
-        
-        self._db.commit()
-        
-        self._db.refresh(db_entry)
+            # add db_entry to db
+            self._db.add(db_entry)
+            
+            # UPDATE AGREEMENT.ATTENDED_HOURS 
+            agreement = self._db.get(InternshipAgreementInDB, agreement_id)
+            
+            if agreement:
+                current_attended = agreement.attended_hours or Decimal("0")
+                updated_attended = current_attended + entry_hours
+                agreement.attended_hours = min(updated_attended, agreement.total_hours)
+                self._db.add(agreement)
+            
+            self._db.refresh(db_entry)
         
         return InternshipEntryPublic.model_validate(db_entry)
     
     
     
     
-    # -- DELETE INTERNSHIP ENTRY --
+    # -- DELETE INTERNSHIP ENTRY -- || OK ||
     def delete_internship_entry(self, entry_id: uuid.UUID) -> dict[str, str]:
         
         now = datetime.now(timezone.utc)
@@ -191,10 +182,7 @@ class InternshipService():
         ).first()
         
         if not entry_to_delete:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Entry not found or too old to be canceled."
-            )
+            raise InternshipEntryNotDeletableError()
             
         # get total entry hours to subtract
         entry_hours = entry_to_delete.end_time - entry_to_delete.start_time
@@ -202,26 +190,26 @@ class InternshipService():
         # get entry agreement id
         agreement_id = entry_to_delete.agreement_id
         
-        # delete entry
-        self._db.delete(entry_to_delete)
+        with self._db.begin():
         
-        # UPDATE AGREEMENT.ATTENDED_HOURS 
-        agreement = self._db.get(InternshipAgreementInDB, agreement_id)
-        
-        if agreement:
-            current_attended = agreement.attended_hours or Decimal("0")
-            updated_attended = current_attended - entry_hours
-            agreement.attended_hours = max(updated_attended, Decimal("0"))
-            self._db.add(agreement)
-        
-        self._db.commit()
+            # delete entry
+            self._db.delete(entry_to_delete)
+            
+            # UPDATE AGREEMENT.ATTENDED_HOURS 
+            agreement = self._db.get(InternshipAgreementInDB, agreement_id)
+            
+            if agreement:
+                current_attended = agreement.attended_hours or Decimal("0")
+                updated_attended = current_attended - entry_hours
+                agreement.attended_hours = max(updated_attended, Decimal("0"))
+                self._db.add(agreement)
         
 
         return {"message": "Entry deleted successfully"}
     
     
     
-    # -- GET ENTRY AGREEMENT ID BY ENTRY ID --
+    # -- GET ENTRY AGREEMENT ID BY ENTRY ID -- || OK ||
     def get_entry_agreement_id_by_entry_id(self, entry_id: uuid.UUID) -> uuid.UUID | None:
         
         agreem_id = self._db.scalar(
