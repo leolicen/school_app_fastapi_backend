@@ -1,4 +1,5 @@
 from typing import Annotated, TYPE_CHECKING, List
+from pydantic import BaseModel
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime
 from decimal import Decimal
@@ -14,15 +15,15 @@ if TYPE_CHECKING:
     from .internship_entry import InternshipEntryInDB
 
 
-class InternshipAgreementBase(SQLModel):
+class InternshipAgreementBase(BaseModel):
     total_hours: Annotated[int, Field(max_digits=4)] 
     attended_hours: Annotated[Decimal | None, Field(max_digits=5, decimal_places=2)] 
     start_date: date 
     is_active: bool 
 
 
-class InternshipAgreementInDB(InternshipAgreementBase, table=True):
-    agreement_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
+class InternshipAgreementInDB(SQLModel, table=True):
+    agreement_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     student_id: Annotated[int, Field(foreign_key="studentindb.student_id", index=True)]
     company_id: Annotated[int, Field(foreign_key="companyindb.company_id")]
     # data e ora creazione per log/audit
@@ -35,9 +36,9 @@ class InternshipAgreementInDB(InternshipAgreementBase, table=True):
         UniqueConstraint("student_id", "company_id", name="unique_student_company"), # => la virgola rende il valore una TUPLA
     )
     
-    student: StudentInDB = Relationship(back_populates="internship_agreements")
+    student: "StudentInDB" = Relationship(back_populates="internship_agreements")
     
-    company: CompanyInDB = Relationship(back_populates="internship_agreements")
+    company: "CompanyInDB" = Relationship(back_populates="internship_agreements")
     
     internship_entries: List["InternshipEntryInDB"] | None = Relationship(back_populates="internship_agreement")
     

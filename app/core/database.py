@@ -7,7 +7,7 @@ from ..models.auth import RefreshTokenInDB
 from datetime import datetime, timezone, timedelta
 from fastapi_utilities import repeat_every
 from ..models.student import StudentInDB
-from sqlalchemy import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 

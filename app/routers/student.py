@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordBearer
 from ..models.student import StudentPublic, StudentUpdate
 from typing import Annotated
 from ..dependencies import get_current_student, get_current_active_student, get_student_service
 from ..services.student import StudentService
 from ..models.password import ChangePassword
-from ..core.settings import settings
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # define /auth router
@@ -41,7 +44,7 @@ def update_student(
 async def delete_account(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
     student_service: Annotated[StudentService, Depends(get_student_service)],
-    access_token: Annotated[str, Depends(settings.oauth2_scheme)]
+    access_token: Annotated[str, Depends(oauth2_scheme)]
 ):
     return await student_service.delete_student(current_student, access_token)
 

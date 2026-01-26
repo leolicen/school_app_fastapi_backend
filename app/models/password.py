@@ -1,5 +1,6 @@
 from typing import Annotated, Self
-from pydantic import BaseModel, Field, field_validator, model_validator
+from sqlmodel import Field
+from pydantic import BaseModel, field_validator, model_validator
 from ..utils.validators import strong_password_validator, passwords_match_validator
 
 

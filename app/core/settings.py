@@ -1,12 +1,18 @@
-from fastapi.security import OAuth2PasswordBearer
-from pwdlib import PasswordHash
+from enum import Enum
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class LogLevel(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+
 
 
 class Settings(BaseSettings):
     
     # -- DATABASE --
-    # l'ordine di precedenza è: 1) inserted params (none here) 2) .env keys values 3) default values 
+    # order: 1) inserted params (none here) 2) .env keys values 3) default values 
     # here mix between mandatory fields (if absent from .env, error) and default fields
   
     app_name: str = "School App FastAPI Server"
@@ -34,14 +40,14 @@ class Settings(BaseSettings):
     # -- REFRESH TOKEN
     refresh_token_expire_days: int = 7
     
-    # PasswordHash instance with Argon2 as hasher
-    pwd_hash = PasswordHash.recommended()
-    # define OAuth2PasswordBearer instance that requests endpoint url that returns the token
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-    
+
+    # -- RESEND --
     resend_api_key: str
     resend_from: str
     pwd_reset_url: str # flutter app url to reset password (to implement with go router)
+    
+    # -- LOG LEVEL --
+    log_level: LogLevel = "INFO"
     
     
     # nested class that tells Pydantic how to behave (without Pydantic it would only read system env variables)

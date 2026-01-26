@@ -1,13 +1,14 @@
+from __future__ import annotations
 import uuid
 from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
 from pydantic import EmailStr
-from sqlalchemy import delete, update, SQLAlchemyError
+from sqlalchemy import delete, update
+from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 from app.core.settings import settings
-from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
-from .auth import AuthService
+
 from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
@@ -16,6 +17,13 @@ from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
 from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from .auth import AuthService
+    from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
+
 
 logger = logging.getLogger(__name__)
 

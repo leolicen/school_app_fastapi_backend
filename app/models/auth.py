@@ -1,11 +1,10 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, EmailStr
 import uuid
-from sqlalchemy import BINARY, Column, func
-from sqlmodel import SQLModel, Relationship
-from typing import Annotated, TYPE_CHECKING
-from datetime import datetime, timezone, timedelta
+from sqlmodel import SQLModel, Relationship, Field
+from typing import Annotated, TYPE_CHECKING, Optional
+from datetime import datetime
 from .password import PasswordMatchModel
-from ..core.settings import settings
+
 
 if TYPE_CHECKING:
     from .student import StudentInDB
@@ -28,9 +27,9 @@ class AccessTokenData(BaseModel):
 
 # -- RESET TOKEN -- tabella che salva i token temporanei per il reset password (associa email e reset token)
 class ResetTokenInDB(SQLModel, table=True):
-    reset_token_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
-    email: EmailStr
-    token_hash: str
+    reset_token_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) # , 
+    email: Annotated[str, Field(max_length=320, index=True)]
+    token_hash: Annotated[str, Field(max_length=255, index=True)]
     expires_at: datetime
     
 # -- RESET PWD DATA -- dati inviati a endpoint reset-confirm (raw token + new_pwd)
@@ -43,18 +42,20 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
     
 
+# refresh_token_expire_days = settings.refresh_token_expire_days
+# default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7)
 
 
 # -- REFRESH TOKEN -- token per refresh access token
 class RefreshTokenInDB(SQLModel, table=True):
-    refresh_token_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
-    student_id: Annotated[uuid.UUID, Field(foreign_key="studentindb.student_id")]
-    token_hash: str
-    created_at: Annotated[datetime, Field(sa_column=Column(server_default=func.now(), nullable=False))]
-    expires_at: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days))]
-    revoked_at: Annotated[datetime | None, Field(default=None, sa_column=Column(nullable=True))]
+    refresh_token_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) # Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
+    student_id: Annotated[str, Field(foreign_key="studentindb.student_id")] #foreign_key="studentindb.student_id"
+    token_hash:  Annotated[str, Field(max_length=255, index=True)]
+    created_at: datetime # sa_column=Column(server_default=func.now()
+    expires_at: datetime
+    revoked_at: Optional[datetime] #default=None, 
     
-    student: StudentInDB = Relationship(back_populates="refresh_tokens")
+    student: "StudentInDB" = Relationship(back_populates="refresh_tokens")
 
 
     

@@ -1,7 +1,7 @@
 from typing import Annotated, TYPE_CHECKING
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 from sqlmodel import Relationship, SQLModel, Field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 import uuid
 from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
@@ -17,7 +17,7 @@ class ShiftType(str, Enum):
     
 
 # -- MODELLO INTERNSHIP ENTRY BASE -- 
-class InternshipEntryBase(SQLModel):
+class InternshipEntryBase(BaseModel):
     date: date
     start_time: time 
     end_time: time 
@@ -35,12 +35,16 @@ class InternshipEntryBase(SQLModel):
     
     
 # -- MODELLO INTERNSHIP IN DB -- (tabella)
-class InternshipEntryInDB(InternshipEntryBase, table=True):
-    entry_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))]
+class InternshipEntryInDB(SQLModel, table=True):
+    entry_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     agreement_id: Annotated[int, Field(foreign_key="internshipagreementindb.agreement_id", index=True)]
     # le date dei turni inseribili non possono essere successive alla data di inserimento
     # né anteriori a 7 giorni dalla stessa
     date: Annotated[date, Field(le=date.today(), ge=date.today()-timedelta(days=7))] # Pydantic check
+    start_time: time 
+    end_time: time 
+    shift_type: ShiftType
+    description: Annotated[str, Field(max_length=150)]
     # data e ora creazione per log/audit
     created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
     
@@ -52,7 +56,7 @@ class InternshipEntryInDB(InternshipEntryBase, table=True):
 )
 
     
-    internship_agreement: InternshipAgreementInDB = Relationship(back_populates="internship_entries")
+    internship_agreement: "InternshipAgreementInDB" = Relationship(back_populates="internship_entries")
     
     
 
