@@ -7,14 +7,14 @@ from ..services.course import CourseService
 
 
 
-# definisco router /courses 
+# define /courses router
 router = APIRouter(
     prefix="/courses",
     tags=["courses"],
 )
 
 # -- GET STUDENT COURSE --
-# endpoint PROTETTO (utenti attivi e inattivi)
+# PROTECTED (active & inactive students)
 @router.get("/", response_model=CoursePublic)
 def get_student_course(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],

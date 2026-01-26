@@ -1,6 +1,6 @@
 from typing import Annotated, List
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request
 from ..models.internship_agreement import InternshipAgreementPublic
 from ..models.student import StudentPublic
 from ..dependencies import get_internship_service, get_current_student, get_current_active_student
@@ -20,8 +20,8 @@ router = APIRouter(
 )
 
 
-# -- GET STUDENT AGREEMENTS -- || OK ||
-# endpoint PROTETTO (studenti attivi e inattivi)
+# -- GET STUDENT AGREEMENTS -- 
+# PROTECTED (active & inactive students)
 @router.get("/", response_model=List[InternshipAgreementPublic])
 def get_student_agreements(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
@@ -31,7 +31,7 @@ def get_student_agreements(
 
 
 
-# -- GET AGREEMENT ENTRIES -- || OK ||
+# -- GET AGREEMENT ENTRIES -- 
 # PROTECTED (active & inactive students)
 @router.get("/{agreement_id}/entries", response_model=List[InternshipEntryPublic])
 def get_student_agreement_entries(
@@ -59,7 +59,7 @@ def get_student_agreement_entries(
 
 
 
-# -- CREATE INTERNSHIP ENTRY -- || OK ||
+# -- CREATE INTERNSHIP ENTRY -- 
 # PROTECTED (only ACTIVE students)
 @router.post("/{agreement_id}/entries", response_model=InternshipEntryPublic)
 def create_internship_entry(
@@ -73,7 +73,7 @@ def create_internship_entry(
     if entry.agreement_id != agreement_id:
         raise AgreementEntryMismatchError()
     
-    # check relationship student <-> active agreement
+    # check relationship student <->  agreement + active/inactive agreement
     if not internship_service.student_owns_specific_active_agreement(current_active_student.student_id, agreement_id):
         
         owned_agreement = internship_service.get_owned_agreement(current_active_student.student_id, agreement_id)
@@ -95,7 +95,8 @@ def create_internship_entry(
 
 
  
-# -- DELETE INTERNSHIP ENTRY -- || OK ||
+# -- DELETE INTERNSHIP ENTRY -- 
+# PROTECTED (only ACTIVE students)
 @router.delete("/{agreement_id}/entries/{entry_id}", response_model=dict[str, str])
 def delete_internship_entry(
     request: Request,
@@ -104,7 +105,7 @@ def delete_internship_entry(
     current_active_student: Annotated[StudentPublic, Depends(get_current_active_student)],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
 ):
-    # check corrispondenza studente <-> agreement + agreement attivo/inattivo 
+    # check relationship student <-> agreement + active/inactive agreement
     if not internship_service.student_owns_specific_active_agreement(current_active_student.student_id, agreement_id):
         
         owned_agreement = internship_service.get_owned_agreement(current_active_student.student_id, agreement_id)
@@ -123,13 +124,13 @@ def delete_internship_entry(
         )
         raise AgreementForbiddenError()
     
-    # estraggo agreement_id da entry da eliminare
+    # extract agreement_id from entry to delete
     entry_agreem_id = internship_service.get_entry_agreement_id_by_entry_id(entry_id)
     
     if entry_agreem_id is None:
         raise AgreementForbiddenError()
     
-    # check entry belongs to agreement
+    # check if entry belongs to agreement
     if entry_agreem_id != agreement_id:
         logger.warning(f"Entry does not belong to this agreement. Cannot delete entry.")
         raise AgreementEntryMismatchError()

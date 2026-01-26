@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 import jwt
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError, InactiveStudentError
 import logging
 from jwt import InvalidTokenError
 
@@ -20,6 +20,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         "INVALID_ACCESS_TOKEN": 401,
         "INVALID_REFRESH_TOKEN": 401,
         "MISSING_REFRESH_TOKEN": 401,
+        "INACTIVE_STUDENT": 403,
         "AGREEMENT_FORBIDDEN": 403,
         "INVALID_CURRENT_PASSWORD": 403,
         "INVALID_RESET_TOKEN": 403,
@@ -117,6 +118,16 @@ def student_not_found_handler(request: Request, exc: StudentNotFoundError) -> JS
     
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+# -- INACTIVE STUDENT --
+def inactive_student_handler(request: Request, exc: InactiveStudentError) -> JSONResponse:
+    
+    logger.warning(f"Inactive student access at {request.url}: {exc.message}", exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN, 
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
@@ -250,6 +261,7 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
     app.add_exception_handler(DatabaseError, database_error_handler)
     app.add_exception_handler(StudentNotFoundError, student_not_found_handler)
+    app.add_exception_handler(InactiveStudentError, inactive_student_handler)
     app.add_exception_handler(InvalidCurrentPasswordError, invalid_current_password_handler)
     app.add_exception_handler(InvalidResetTokenError, invalid_reset_token_handler)
     app.add_exception_handler(InvalidRefreshTokenError, invalid_refresh_token_handler)
