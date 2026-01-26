@@ -1,6 +1,7 @@
 import uuid
+from fastapi.security import OAuth2PasswordBearer
 from app.services.auth import AuthService
-from core.database import SessionDep
+from .core.database import SessionDep
 from .core.settings import settings
 from .services.student import StudentService 
 from .models.student import StudentPublic
@@ -15,6 +16,10 @@ from .exceptions.exceptions import InactiveStudentError
 
 
 logger = logging.getLogger(__name__)
+
+   
+# define OAuth2PasswordBearer instance that requests endpoint url that returns the token
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 
@@ -40,7 +45,7 @@ def get_internship_service(session: SessionDep):
 # => does not check is_active flag, returns ACTIVE & INACTIVE students
 # => e.g. used in /students/me (all students can read their info, but only active ones can modify them)
 async def get_current_student(
-    token: Annotated[str, Depends(settings.oauth2_scheme)], 
+    token: Annotated[str, Depends(oauth2_scheme)], 
     student_service: StudentService = Depends(get_student_service)
     ) -> StudentPublic:
     
@@ -79,7 +84,7 @@ async def get_current_active_student(current_student: Annotated[StudentPublic, D
 
 # -- GET CURRENT USER ID ONLY -- (with EXPIRED ACCESS TOKEN) --
 # used in /auth/refresh to retrieve student id even with an expired access token  
-def get_current_student_id_only(token: str = Depends(settings.oauth2_scheme)) -> uuid.UUID:
+def get_current_student_id_only(token: str = Depends(oauth2_scheme)) -> uuid.UUID:
     
     try:
         

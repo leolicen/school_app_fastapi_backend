@@ -9,7 +9,7 @@ from ..services.course import CourseService
 
 # define /courses router
 router = APIRouter(
-    prefix="/courses",
+    prefix="/courses", 
     tags=["courses"],
 )
 

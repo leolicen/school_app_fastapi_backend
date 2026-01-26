@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Annotated, List, Optional
+from typing import TYPE_CHECKING, Annotated, List
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime
 import uuid
@@ -10,7 +11,7 @@ if TYPE_CHECKING:
     
 
 # -- modello CORSO BASE --
-class CourseBase(SQLModel):
+class CourseBase(BaseModel):
     name: Annotated[str, Field(max_length=100)]
     course_type: Annotated[str, Field(max_length=50)] 
     schedule: Annotated[str | None, Field(max_length=100)]
@@ -23,9 +24,9 @@ class CourseBase(SQLModel):
 
 
 # -- modello CORSO IN DB --
-class CourseInDB(CourseBase, table=True):
+class CourseInDB(SQLModel, table=True):
     # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
-    course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
+    course_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) # forza BINARY(16) in MySQL
     # Field(index=True) tells SQLModel that it should create a SQL index for this column
     name: Annotated[str, Field(max_length=100, index=True, unique=True)]
     # full_name: Annotated[str, Field(max_length=150)]

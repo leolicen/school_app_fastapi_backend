@@ -1,7 +1,7 @@
 import uuid
-from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, status
+from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, Request, status
 from typing import Annotated
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import Session
 from app.core import settings
 from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
@@ -9,13 +9,15 @@ from ..dependencies import get_student_service, get_current_student_id_only
 from ..services.student import StudentService
 from ..models.student import StudentCreate
 from ..core.rate_limiting import limiter
-from core.database import SessionDep
+from ..core.database import SessionDep
 from ..services.auth import AuthService
 import logging
 from ..exceptions.exceptions import MissingRefreshTokenError
 
 
 logger = logging.getLogger(__name__)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 
@@ -32,6 +34,7 @@ router = APIRouter(
 @router.post("/login", response_model=AccessRefreshToken)
 @limiter.limit("10/minute")
 def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
     ):
@@ -44,6 +47,7 @@ def login(
 @router.post("/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
+    request: Request,
     student: StudentCreate,
     student_service: StudentService = Depends(get_student_service)
     ):
@@ -55,11 +59,12 @@ def register_student(
 @router.post("/password/reset-request", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def request_password_reset(
-    request: ResetPasswordRequest,
+    request: Request,
+    reset_request: ResetPasswordRequest,
     background_tasks: BackgroundTasks,
     student_service: StudentService = Depends(get_student_service)
 ):
-    return student_service.request_password_reset(request.email, background_tasks)
+    return student_service.request_password_reset(reset_request.email, background_tasks)
     
 
 
@@ -69,6 +74,7 @@ def request_password_reset(
 @router.post("/password/reset-confirm", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def reset_password(
+    request: Request,
     reset_pwd_data: ResetPwdData, # single body param with token & new_pwd
     student_service: StudentService = Depends(get_student_service)
 ):
@@ -81,6 +87,7 @@ def reset_password(
 @router.post("/refresh", response_model=AccessRefreshToken)
 @limiter.limit("5/minute")
 def refresh_tokens(
+    request: Request,
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     session: Annotated[Session, Depends(SessionDep)],
     refresh_token: Annotated[str | None, Cookie()] = None # Cookie is a HTTP header
@@ -99,6 +106,6 @@ def refresh_tokens(
 async def logout(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     student_service: Annotated[StudentService, Depends(get_student_service)],
-    access_token: Annotated[str, Depends(settings.oauth2_scheme)]
+    access_token: Annotated[str, Depends(oauth2_scheme)]
 ):
     await student_service.logout(student_id, access_token)

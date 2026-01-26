@@ -1,21 +1,28 @@
+from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import uuid
-from sqlalchemy import select, SQLAlchemyError
+from pwdlib import PasswordHash
+from sqlalchemy.exc import SQLAlchemyError
 from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 import jwt
 from ..core.settings import settings
 from pydantic import EmailStr
 from ..utils.validators import normalize_email
-from sqlmodel import delete, Session
+from sqlmodel import delete, Session, select
 import secrets
-from ..services.student import StudentService
 from ..utils.hash_reset_token import hash_reset_token
 from ..core.redis import rdb
 import logging
 from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .student import StudentService 
+
 
 logger = logging.getLogger(__name__)
-
+ # PasswordHash instance with Argon2 as hasher
+pwd_hash = PasswordHash.recommended()
 
 
 class AuthService():
@@ -25,7 +32,7 @@ class AuthService():
     @staticmethod
     def verify_password(plain_password: str | bytes, hashed_password: str | bytes) -> bool:
         
-        return settings.pwd_hash.verify(plain_password, hashed_password)
+        return pwd_hash.verify(plain_password, hashed_password)
 
 
 
@@ -33,7 +40,7 @@ class AuthService():
     @staticmethod
     def get_password_hash(password: str | bytes) -> str:
         
-        return settings.pwd_hash.hash(password)
+        return pwd_hash.hash(password)
 
 
     
@@ -181,7 +188,9 @@ class AuthService():
         # crete RefreshTokenInDB
         refresh_token_in_db = RefreshTokenInDB(
             student_id=student_id,
-            token_hash=hashed_refresh_token
+            token_hash=hashed_refresh_token,
+            created_at=datetime.now(timezone.utc),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
         )
         
         session.add(refresh_token_in_db) # session.commit() will be executed from the function that calls this method (e.g. login_for_access_token())
