@@ -33,6 +33,11 @@ class DatabaseError(AppError):
 class StudentNotFoundError(AppError):
     def __init__(self, message: str = "Student not found"):
         super().__init__(message, "STUDENT_NOT_FOUND")
+
+
+class InactiveStudentError(AppError):
+    def __init__(self, message: str = "Inactive student"):
+        super().__init__(message, "INACTIVE_STUDENT")
         
 
 class InvalidCurrentPasswordError(AppError):
@@ -83,3 +88,4 @@ class InternshipOverlappingEntryError(AppError):
 class InternshipEntryNotDeletableError(AppError):
     def __init__(self, message: str = "Entry not found or too old to be canceled"):
         super().__init__(message, "INTERNSHIP_ENTRY_NOT_DELETABLE")
+

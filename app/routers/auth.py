@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, status
 from typing import Annotated
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 
-# definisco router /auth 
+# define /auth router
 router = APIRouter(
-    # il prefisso non ha '/' finale perché è incluso nei singoli endpoint
+    # prefix does not contain final '/'  because it is included in the endpoints
     prefix="/auth",
     tags=["auth"],
    
 )
 
 # -- LOGIN -- 
-# endoint NON PROTETTO
+# PUBLIC
 @router.post("/login", response_model=AccessRefreshToken)
 @limiter.limit("10/minute")
 def login(
@@ -39,8 +39,8 @@ def login(
 
 
 
-# -- REGISTRAZIONE -- (registrazione + login automatico)
-# endpoint NON PROTETTO
+# -- REGISTER STUDENT -- (register + automatic login)
+# PUBLIC
 @router.post("/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
@@ -50,8 +50,8 @@ def register_student(
     return student_service.register_and_login(student)
 
 
-# -- PASSWORD RESET REQUEST --
-# endpoint NON PROTETTO
+# -- REQUEST PASSWORD RESET --
+# PUBLIC
 @router.post("/password/reset-request", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def request_password_reset(
@@ -63,27 +63,27 @@ def request_password_reset(
     
 
 
-# -- PASSWORD RESET --
-# endpoint NON PROTETTO
-# riceve raw token e new_pwd dal form di reset password
+# -- RESET PASSWORD --
+# PROTECTED (?)
+# receives raw token & new_pwd from reset password form
 @router.post("/password/reset-confirm", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def reset_password(
-    reset_pwd_data: ResetPwdData, # unico body param che ingloba token e new_pwd
+    reset_pwd_data: ResetPwdData, # single body param with token & new_pwd
     student_service: StudentService = Depends(get_student_service)
 ):
     return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
 
 
 
-# -- REFRESH ACCESS TOKEN --
-# endpoint NON PROTETTO
+# -- REFRESH TOKENS --
+# PROTECTED (?)
 @router.post("/refresh", response_model=AccessRefreshToken)
 @limiter.limit("5/minute")
 def refresh_tokens(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     session: Annotated[Session, Depends(SessionDep)],
-    refresh_token: Annotated[str | None, Cookie()] = None # Cookie è header HTTP 
+    refresh_token: Annotated[str | None, Cookie()] = None # Cookie is a HTTP header
 ):
     
     if not refresh_token:
@@ -94,7 +94,7 @@ def refresh_tokens(
 
 
 # -- LOGOUT --
-# endpoint PROTETTO
+# PROTECTED (?)
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],

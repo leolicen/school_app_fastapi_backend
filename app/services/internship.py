@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import List
 from typing import Sequence
 import uuid
-from fastapi import HTTPException, status
 from sqlalchemy import and_, exists
 from sqlmodel import Session, select
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
@@ -22,7 +21,7 @@ class InternshipService():
         self._db = session
         
     
-    # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company) || OK ||
+    # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company)
     def get_internship_agreements_list(self, current_student: StudentPublic) -> List[InternshipAgreementPublic]:
         
         # retrieve agreement/s connected to student id (active & non-active)
@@ -37,7 +36,7 @@ class InternshipService():
     
     
     
-    # -- GET OWNED AGREEMENT -- retrieve agreement only if owned || OK ||
+    # -- GET OWNED AGREEMENT -- retrieve agreement only if owned 
     def get_owned_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> InternshipAgreementPublic | None:
         
         # retrieve agreement only if it belongs to the student
@@ -52,7 +51,7 @@ class InternshipService():
   
     
     
-    # -- STUDENT OWNS SPECIFIC ACTIVE AGREEMENT -- || OK ||
+    # -- STUDENT OWNS SPECIFIC ACTIVE AGREEMENT -- 
     def student_owns_specific_active_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> bool:
         
         # retrieve owned agreement
@@ -64,7 +63,7 @@ class InternshipService():
     
     
     
-    # -- GET INTERNSHIP ENTRIES LIST -- || OK ||
+    # -- GET INTERNSHIP ENTRIES LIST -- 
     def get_internship_entries_list(self, agreement_id: uuid.UUID) -> List[InternshipEntryPublic]:
         
         # retrieve specific agreement entries in ascending order (from oldest to newest)
@@ -80,7 +79,7 @@ class InternshipService():
     
     
     
-    # -- GET REMAINING HOURS -- || OK ||
+    # -- GET REMAINING HOURS -- 
     def get_remaining_hours(self, agreement_id: uuid.UUID) -> Decimal:
         
         # retrieve total hours and attended hours from agreement
@@ -107,7 +106,7 @@ class InternshipService():
 
 
     
-    # -- CREATE INTERNSHIP ENTRY -- || OK ||
+    # -- CREATE INTERNSHIP ENTRY -- 
     def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
         # retrieve agreement remaining hours
@@ -169,7 +168,7 @@ class InternshipService():
     
     
     
-    # -- DELETE INTERNSHIP ENTRY -- || OK ||
+    # -- DELETE INTERNSHIP ENTRY -- 
     def delete_internship_entry(self, entry_id: uuid.UUID) -> dict[str, str]:
         
         now = datetime.now(timezone.utc)
@@ -209,7 +208,7 @@ class InternshipService():
     
     
     
-    # -- GET ENTRY AGREEMENT ID BY ENTRY ID -- || OK ||
+    # -- GET ENTRY AGREEMENT ID BY ENTRY ID --
     def get_entry_agreement_id_by_entry_id(self, entry_id: uuid.UUID) -> uuid.UUID | None:
         
         agreem_id = self._db.scalar(
