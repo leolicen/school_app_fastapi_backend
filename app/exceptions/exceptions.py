@@ -1,5 +1,8 @@
 
 # BASE CLASS for all app errors
+from decimal import Decimal
+
+
 class AppError(Exception):
     def __init__(self, message: str, code: str):
         self.message = message
@@ -63,3 +66,20 @@ class AgreementForbiddenError(AppError):
 class AgreementEntryMismatchError(AppError):
     def __init__(self, message: str = "Agreement mismatch"):
         super().__init__(message, "AGREEMENT_MISMATCH")
+        
+class InternshipCompletedError(AppError):
+    def __init__(self, message: str = "Internship completed. Cannot create new entry"):
+        super().__init__(message, "INTERNSHIP_COMPLETED")
+        
+class InternshipHoursExceededError(AppError):
+    def __init__(self, requested: Decimal, remaining: Decimal):
+        super().__init__(f"Cannot insert {requested} hours. Only {remaining} left", "INTERNSHIP_HOURS_EXCEEDED")
+        
+
+class InternshipOverlappingEntryError(AppError):
+    def __init__(self, message: str = "Overlapping entry time. Cannot create new entry"):
+        super().__init__(message, "INTERNSHIP_OVERLAPPING_ENTRY")
+        
+class InternshipEntryNotDeletableError(AppError):
+    def __init__(self, message: str = "Entry not found or too old to be canceled"):
+        super().__init__(message, "INTERNSHIP_ENTRY_NOT_DELETABLE")

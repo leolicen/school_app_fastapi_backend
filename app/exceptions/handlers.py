@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 import jwt
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError
+from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError
 import logging
 from jwt import InvalidTokenError
 
@@ -13,15 +13,21 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     logger.error(f"{exc.code} - {exc.message} at {request.url}", exc_info=True) # exc_info=True shows complete traceback
     
     status_code = {
+        "AGREEMENT_MISMATCH": 400,
+        "INTERNSHIP_COMPLETED": 400,
+        "INTERNSHIP_HOURS_EXCEEDED": 400,
         "INVALID_CREDENTIALS": 401,
         "INVALID_ACCESS_TOKEN": 401,
         "INVALID_REFRESH_TOKEN": 401,
         "MISSING_REFRESH_TOKEN": 401,
+        "AGREEMENT_FORBIDDEN": 403,
         "INVALID_CURRENT_PASSWORD": 403,
         "INVALID_RESET_TOKEN": 403,
         "STUDENT_NOT_FOUND": 404,
         "COURSE_NOT_FOUND": 404,
+        "INTERNSHIP_ENTRY_NOT_DELETABLE": 404,
         "DUPLICATE_EMAIL": 409,
+        "INTERNSHIP_OVERLAPPING_ENTRY": 409,
         "ACCOUNT_EXPIRED": 410,
         "INTERNAL_ERROR": 500,
         "DATABASE_ERROR": 503
@@ -188,6 +194,49 @@ def agreement_mismatch_handler(request: Request, exc: AgreementEntryMismatchErro
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
+# --INTERNSHIP COMPLETED --
+def internship_completed_handler(request: Request, exc: InternshipCompletedError) -> JSONResponse:
+    
+    logger.warning(f"Internship completed access at {request.url}", extra={"code": exc.code}, exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+# --INTERNSHIP HOURS EXCEEDED --
+def internship_hours_exceeded_handler(request: Request, exc: InternshipHoursExceededError) -> JSONResponse:
+    
+    logger.warning(f"Attempt to register exceeding hours at {request.url}", extra={"code": exc.code}, exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+
+# --INTERNSHIP OVERLAPPING ENTRY --
+def internship_overlapping_entry_handler(request: Request, exc: InternshipOverlappingEntryError) -> JSONResponse:
+    
+    logger.warning(f"Internship entry overlap at {request.url}", extra={"code": exc.code}, exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
+# --INTERNSHIP ENTRY NOT DELETABLE --
+def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntryNotDeletableError) -> JSONResponse:
+    
+    logger.warning(f"Internship entry delete denied at {request.url}", extra={"code": exc.code}, exc_info=True)
+    
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND, 
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
 
 
 
@@ -208,3 +257,7 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(CourseNotFoundError, course_not_found_handler)
     app.add_exception_handler(AgreementForbiddenError, agreement_forbidden_handler)
     app.add_exception_handler(AgreementEntryMismatchError, agreement_mismatch_handler)
+    app.add_exception_handler(InternshipCompletedError, internship_completed_handler)
+    app.add_exception_handler(InternshipHoursExceededError, internship_hours_exceeded_handler)
+    app.add_exception_handler(InternshipOverlappingEntryError, internship_overlapping_entry_handler)
+    app.add_exception_handler(InternshipEntryNotDeletableError, internship_entry_not_deletable_handler)
