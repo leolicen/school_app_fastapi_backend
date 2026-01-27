@@ -8,12 +8,14 @@ from .password import PasswordMatchModel
 
 if TYPE_CHECKING:
     from .student import StudentInDB
+    
 
 # -- ACCESS (& REFRESH) TOKEN PUBLIC -- quello che viene restituito all'utente
 class AccessRefreshToken(BaseModel):
     access_token: str
     token_type: str
     refresh_token: str 
+    
 
 # -- TOKEN DATA -- estratto dal token decodificato, usato in get_student_by_id
 class AccessTokenData(BaseModel):
@@ -24,6 +26,7 @@ class AccessTokenData(BaseModel):
         if self.student_id:
             return uuid.UUID(self.student_id)
         return None
+    
 
 # -- RESET TOKEN -- tabella che salva i token temporanei per il reset password (associa email e reset token)
 class ResetTokenInDB(SQLModel, table=True):

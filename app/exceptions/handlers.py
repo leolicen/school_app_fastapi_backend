@@ -1,7 +1,12 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 import jwt
-from .exceptions import AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError, InactiveStudentError
+from .exceptions import (
+    AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
+    StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, 
+    MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, 
+    InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, 
+    InternshipEntryNotDeletableError, InactiveStudentError)
 import logging
 from jwt import InvalidTokenError
 
