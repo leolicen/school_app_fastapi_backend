@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .auth import RefreshTokenInDB
 
 
+
 # -- STUDENT BASE -- (fields shared by all models)
 class StudentBase(SQLModel):
     name: str = Field(max_length=40)
@@ -51,6 +52,8 @@ class StudentInDB(StudentBase, table=True):
     refresh_tokens: List["RefreshTokenInDB"] = Relationship(back_populates="student")
     
 
+
+
 # -- STUDENT CREATE -- (registration input)
 # pwd with 8 chars min to prevent potential UI Flutter bypass 
 class StudentCreate(StudentBase):
@@ -62,10 +65,14 @@ class StudentCreate(StudentBase):
         return strong_password_validator(v)
     
 
+
+
 # -- STUDENT PUBLIC -- (read-only model for users)
 class StudentPublic(StudentBase):
     student_id: uuid.UUID
     is_active: bool
+
+
 
 
 # -- STUDENT UPDATE -- 
