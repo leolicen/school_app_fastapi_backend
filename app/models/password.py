@@ -1,6 +1,6 @@
 from typing import Annotated, Self
 from sqlmodel import Field
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from ..utils.validators import strong_password_validator, passwords_match_validator
 
 
@@ -21,11 +21,24 @@ class PasswordMatchModel(BaseModel):
         return passwords_match_validator(self)
     
     
-    
-
-
+# endpoint /students/change-password
 class ChangePassword(PasswordMatchModel):
     current_password: Annotated[str, Field(max_length=50, min_length=8)]
     
     
+    
+
+
+# -- RESET PWD REQUEST -- email of user requesting pwd reset => endpoint auth/password/reset-request
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    
+
+    
+# -- RESET PWD DATA -- (raw token + new_pwd) => endpoint auth/password/reset-confirm
+class ResetPwdData(BaseModel):
+    raw_reset_token: str
+    new_pwd_data: PasswordMatchModel
+    
+
 

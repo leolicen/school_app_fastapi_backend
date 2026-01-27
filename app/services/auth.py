@@ -189,7 +189,6 @@ class AuthService():
         refresh_token_in_db = RefreshTokenInDB(
             student_id=student_id,
             token_hash=hashed_refresh_token,
-            created_at=datetime.now(timezone.utc),
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
         )
         

@@ -3,8 +3,8 @@ from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, Request, status
 from typing import Annotated
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import Session
-from app.core import settings
-from ..models.auth import AccessRefreshToken, ResetPasswordRequest, ResetPwdData
+from ..models.auth import AccessRefreshToken
+from ..models.password import ResetPasswordRequest, ResetPwdData
 from ..dependencies import get_student_service, get_current_student_id_only
 from ..services.student import StudentService
 from ..models.student import StudentCreate
