@@ -1,4 +1,4 @@
-from typing import Annotated, Self
+from typing import Self
 from sqlmodel import Field
 from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from ..utils.validators import strong_password_validator, passwords_match_validator
@@ -21,9 +21,10 @@ class PasswordMatchModel(BaseModel):
         return passwords_match_validator(self)
     
     
+    
 # endpoint /students/change-password
 class ChangePassword(PasswordMatchModel):
-    current_password: Annotated[str, Field(max_length=50, min_length=8)]
+    current_password: str = Field(max_length=50, min_length=8)
     
     
     
