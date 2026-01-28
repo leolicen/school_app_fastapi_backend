@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # definisco router /courses 
 router = APIRouter(
-    prefix="/internships-agreements",
-    tags=["internships"],
+    prefix="/internship-agreements",
+    tags=["internship-agreements"],
 )
 
 

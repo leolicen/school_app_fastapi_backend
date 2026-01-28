@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import List
+from typing import List, Tuple
 from typing import Sequence
 import uuid
 from sqlalchemy import and_, exists
@@ -24,15 +24,20 @@ class InternshipService():
     # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company)
     def get_internship_agreements_list(self, current_student: StudentPublic) -> List[InternshipAgreementPublic]:
         
-        # retrieve agreement/s connected to student id (active & non-active)
-        get_agreements_stmt = select(InternshipAgreementInDB).where(
+        # retrieve agreement/s connected to student id (active & non-active) + company name for each agreement
+        get_agreements_stmt = select(
+            InternshipAgreementInDB,
+            InternshipAgreementInDB.company.name
+            ).where(
             InternshipAgreementInDB.student_id == current_student.student_id
         )
-        # retrieve  AgreementInDB Sequence 
-        agreements_in_db: Sequence[InternshipAgreementInDB] = self._db.exec(get_agreements_stmt).all()
         
-        # convert them to AgreementPublic and return them
-        return [InternshipAgreementPublic.model_validate(agr) for agr in agreements_in_db]
+        # each tuple = (InternshipAgreementInDB, company_name)
+        agreements_tuples: Sequence[Tuple[InternshipAgreementInDB, str]] = self._db.exec(get_agreements_stmt).all()
+        
+        return [InternshipAgreementPublic.model_validate(agr, update={"company_name": name}, from_attributes=True) for agr, name in agreements_tuples]
+            
+    
     
     
     
@@ -225,6 +230,10 @@ class InternshipService():
      
      
      
+        
+
+           
+    
      
      
      
