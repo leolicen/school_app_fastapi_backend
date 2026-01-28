@@ -1,11 +1,10 @@
-from typing import Annotated, TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 from pydantic import BaseModel
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime
 from decimal import Decimal
 from sqlalchemy import DateTime, UniqueConstraint, func
 import uuid
-from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column
 
 
@@ -15,19 +14,20 @@ if TYPE_CHECKING:
     from .internship_entry import InternshipEntryInDB
 
 
-class InternshipAgreementBase(BaseModel):
-    total_hours: Annotated[int, Field(max_digits=4)] 
-    attended_hours: Annotated[Decimal | None, Field(max_digits=5, decimal_places=2)] 
+class InternshipAgreementBase(SQLModel):
+    total_hours: int = Field(gt=0)
+    attended_hours: Optional[Decimal] = Field(default=None, max_digits=5, decimal_places=2)
     start_date: date 
-    is_active: bool 
+    is_active: bool = Field(default=False) # False because an agreement is created before its start_date 
+    # and is_active is checked by some endpoints(entry creation and deletion) in order to allow students to modify data
 
 
-class InternshipAgreementInDB(SQLModel, table=True):
+class InternshipAgreementInDB(InternshipAgreementBase, table=True):
     agreement_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    student_id: Annotated[int, Field(foreign_key="studentindb.student_id", index=True)]
-    company_id: Annotated[int, Field(foreign_key="companyindb.company_id")]
-    # data e ora creazione per log/audit
-    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
+    student_id: int = Field(foreign_key="studentindb.student_id", index=True)
+    company_id: int = Field(foreign_key="companyindb.company_id")
+    # date & time for log/audit
+    created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
     
     
     # attributo speciale di SQLAlchemy (declarative class attribute) per definire configurazioni avanzate della tabella
@@ -45,3 +45,4 @@ class InternshipAgreementInDB(SQLModel, table=True):
 
 class InternshipAgreementPublic(InternshipAgreementBase):
     agreement_id: uuid.UUID
+    company_name: str 
