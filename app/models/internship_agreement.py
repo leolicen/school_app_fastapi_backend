@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, List, Optional
-from pydantic import BaseModel
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime
 from decimal import Decimal

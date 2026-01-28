@@ -1,10 +1,9 @@
-from typing import Annotated, TYPE_CHECKING
-from pydantic import BaseModel, field_validator
+from typing import TYPE_CHECKING, Optional
+from pydantic import field_validator
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 import uuid
-from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint, func
 
 if TYPE_CHECKING:
@@ -12,13 +11,13 @@ if TYPE_CHECKING:
 
 
 class ShiftType(str, Enum):
-    IN_SEDE = "In sede"
-    DA_REMOTO = "Da remoto"
+    IN_OFFICE = "in_office"
+    REMOTE = "remote"
     
 
-# -- MODELLO INTERNSHIP ENTRY BASE -- 
-class InternshipEntryBase(BaseModel):
-    date: date
+# -- INTERNSHIP ENTRY BASE -- 
+class InternshipEntryBase(SQLModel):
+    entry_date: date
     start_time: time 
     end_time: time 
     
@@ -30,23 +29,20 @@ class InternshipEntryBase(BaseModel):
         return v
     
     shift_type: ShiftType
-    description: Annotated[str, Field(max_length=150)]
+    description: str = Field(max_length=150)
     
     
     
-# -- MODELLO INTERNSHIP IN DB -- (tabella)
-class InternshipEntryInDB(SQLModel, table=True):
+# -- INTERNSHIP IN DB -- (table)
+class InternshipEntryInDB(InternshipEntryBase, table=True):
     entry_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    agreement_id: Annotated[int, Field(foreign_key="internshipagreementindb.agreement_id", index=True)]
-    # le date dei turni inseribili non possono essere successive alla data di inserimento
-    # né anteriori a 7 giorni dalla stessa
-    date: Annotated[date, Field(le=date.today(), ge=date.today()-timedelta(days=7))] # Pydantic check
-    start_time: time 
-    end_time: time 
-    shift_type: ShiftType
-    description: Annotated[str, Field(max_length=150)]
-    # data e ora creazione per log/audit
-    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
+    agreement_id: uuid.UUID = Field(foreign_key="internshipagreementindb.agreement_id", index=True)
+    
+    # entry date cannot be later than creation date nor 7 days prior to it 
+    entry_date: date = Field(le=date.today(), ge=date.today()-timedelta(days=7)) # Pydantic check
+    
+    # date & time for log/audit
+    created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
     
    
     __table_args__ = (
@@ -60,12 +56,13 @@ class InternshipEntryInDB(SQLModel, table=True):
     
     
 
-# -- MODELLO CREA INTERNSHIP ENTRY -- (input utente)
+# -- INTERNSHIP ENTRY CREATE -- (user input)
 class InternshipEntryCreate(InternshipEntryBase):
     agreement_id: uuid.UUID 
-    date: Annotated[date, Field(le=date.today(), ge=date.today()-timedelta(days=7))]
+    entry_date: date = Field(le=date.today(), ge=date.today()-timedelta(days=7))
     
-# -- MODELLO INTERNSHIP ENTRY PUBBLICO -- (lettura utenti in app)
+    
+# -- INTERNSHIP ENTRY PUBLIC -- (read-only for app users)
 class InternshipEntryPublic(InternshipEntryBase):
     entry_id: uuid.UUID
     
