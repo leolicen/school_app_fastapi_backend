@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 import jwt
 from .exceptions import (
     AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
@@ -9,6 +11,7 @@ from .exceptions import (
     InternshipEntryNotDeletableError, InactiveStudentError)
 import logging
 from jwt import InvalidTokenError
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +48,9 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
             "error": {"code": exc.code, "message": exc.message}
             }
     )
+
+
+
     
 # -- INVALID CREDENTIALS --
 def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
@@ -177,7 +183,7 @@ def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenErro
     
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED, 
-        content={{"code": exc.code, "message": exc.message}}
+        content={"error": {"code": exc.code, "message": exc.message}}
     )
     
 # -- COURSE NOT FOUND --
@@ -252,7 +258,19 @@ def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntr
         content={"error": {"code": exc.code, "message": exc.message}}
     )
     
+
+# -- REQUEST VALIDATION --
+async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     
+    logger.warning(f"Validation error {request.url}", exc_info=True)
+    
+    detail = jsonable_encoder(exc.errors())
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"error": {"code": "VALIDATION_ERROR", "message": "Invalid input data", "detail": detail}}
+    )
+
 
 
 
@@ -278,3 +296,4 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(InternshipHoursExceededError, internship_hours_exceeded_handler)
     app.add_exception_handler(InternshipOverlappingEntryError, internship_overlapping_entry_handler)
     app.add_exception_handler(InternshipEntryNotDeletableError, internship_entry_not_deletable_handler)
+    app.add_exception_handler(RequestValidationError, request_validation_handler)
