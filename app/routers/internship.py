@@ -1,22 +1,27 @@
 from typing import Annotated, List
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Request
 from ..models.internship_agreement import InternshipAgreementPublic
 from ..models.student import StudentPublic
 from ..dependencies import get_internship_service, get_current_student, get_current_active_student
 from ..services.internship import InternshipService
 from ..models.internship_entry import InternshipEntryPublic, InternshipEntryCreate
+import logging
+from ..exceptions.exceptions import AgreementForbiddenError, AgreementEntryMismatchError
+
+logger = logging.getLogger(__name__)
+
 
 
 # definisco router /courses 
 router = APIRouter(
-    prefix="/internships-agreements",
-    tags=["internships"],
+    prefix="/internship-agreements",
+    tags=["internship-agreements"],
 )
 
 
-# -- GET STUDENT AGREEMENTS --
-# endpoint PROTETTO (studenti attivi e inattivi)
+# -- GET STUDENT AGREEMENTS -- 
+# PROTECTED (active & inactive students)
 @router.get("/", response_model=List[InternshipAgreementPublic])
 def get_student_agreements(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
@@ -26,83 +31,109 @@ def get_student_agreements(
 
 
 
-# -- GET AGREEMENT ENTRIES --
-# endpoint PROTETTO (studenti attivi e inattivi)
+# -- GET AGREEMENT ENTRIES -- 
+# PROTECTED (active & inactive students)
 @router.get("/{agreement_id}/entries", response_model=List[InternshipEntryPublic])
 def get_student_agreement_entries(
+    request: Request,
     agreement_id: uuid.UUID,
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
     
 ):
-    # controllo che l'agreement appartenga allo studente
-    if not internship_service.student_owns_specific_agreement(current_student.student_id, agreement_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Agreement not found or student not authorized"
-        )
+    # check if agreement belongs to student
+    owned_agreement = internship_service.get_owned_agreement(current_student.student_id, agreement_id)
+    
+    if owned_agreement is None:
+        logger.warning(
+            f"Agreement entries access denied at {request.url}",
+            extra={
+                "student_id": str(current_student.student_id),
+                "agreement_id": str(agreement_id),
+                "reason": "agreement not owned"
+            }
+            )
+        raise AgreementForbiddenError()
     
     return internship_service.get_internship_entries_list(agreement_id)
 
 
-# -- CREATE INTERNSHIP ENTRY --
-# endpoint PROTETTO (solo utenti ATTIVI)
+
+# -- CREATE INTERNSHIP ENTRY -- 
+# PROTECTED (only ACTIVE students)
 @router.post("/{agreement_id}/entries", response_model=InternshipEntryPublic)
 def create_internship_entry(
+    request: Request,
     agreement_id: uuid.UUID,
     current_active_student: Annotated[StudentPublic, Depends(get_current_active_student)],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)],
     entry: InternshipEntryCreate
 ):
-   # check se entry appartiene a agreement
+   # check if entry belongs to agreement
     if entry.agreement_id != agreement_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Entry agreement mismatch"
-        )
+        raise AgreementEntryMismatchError()
     
-    # check corrispondenza studente <-> active agreement
+    # check relationship student <->  agreement + active/inactive agreement
     if not internship_service.student_owns_specific_active_agreement(current_active_student.student_id, agreement_id):
-        raise HTTPException(
-            status_code=403,
-            detail="Agreement not owned or inactive. Cannot create entry."
+        
+        owned_agreement = internship_service.get_owned_agreement(current_active_student.student_id, agreement_id)
+        
+        reason = "Agreement not owned" if owned_agreement is None else "Agreement not active"
+        
+        logger.warning(
+            f"Entry creation denied at {request.url}",
+            extra={
+                "student_id": str(current_active_student.student_id),
+                "agreement_id": str(agreement_id),
+                "reason": reason,
+                "client_ip": request.client.host
+            }
         )
+        raise AgreementForbiddenError()
     
     return internship_service.create_internship_entry(agreement_id, entry)
 
 
-
-# -- DELETE INTERNSHIP ENTRY --
+ 
+# -- DELETE INTERNSHIP ENTRY -- 
+# PROTECTED (only ACTIVE students)
 @router.delete("/{agreement_id}/entries/{entry_id}", response_model=dict[str, str])
 def delete_internship_entry(
+    request: Request,
     agreement_id: uuid.UUID,
     entry_id: uuid.UUID,
     current_active_student: Annotated[StudentPublic, Depends(get_current_active_student)],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
 ):
-    # check corrispondenza studente <-> agreement + agreement attivo/inattivo 
+    # check relationship student <-> agreement + active/inactive agreement
     if not internship_service.student_owns_specific_active_agreement(current_active_student.student_id, agreement_id):
-        print(f"Agreement does not match student id.")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Agreement not owned or inactive. Cannot delete entry."
+        
+        owned_agreement = internship_service.get_owned_agreement(current_active_student.student_id, agreement_id)
+        
+        reason = "Agreement not owned" if owned_agreement is None else "Agreement not active"
+        
+        logger.warning(
+            f"Entry deletion denied at {request.url}",
+            extra={
+                "student_id": str(current_active_student.student_id),
+                "agreement_id": str(agreement_id),
+                "entry_id": str(entry_id),
+                "reason": reason,
+                "client_ip": request.client.host
+            }
         )
-    # estraggo agreement_id da entry da eliminare
+        raise AgreementForbiddenError()
+    
+    # extract agreement_id from entry to delete
     entry_agreem_id = internship_service.get_entry_agreement_id_by_entry_id(entry_id)
     
     if entry_agreem_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Entry not found."
-        )
+        raise AgreementForbiddenError()
     
-    # check entry belongs to agreement
+    # check if entry belongs to agreement
     if entry_agreem_id != agreement_id:
-        print(f"Entry does not belong to this agreement. Cannot delete entry.")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Entry not found. Cannot delete entry."
-        )
+        logger.warning(f"Entry does not belong to this agreement. Cannot delete entry.")
+        raise AgreementEntryMismatchError()
         
     
     return internship_service.delete_internship_entry(entry_id)

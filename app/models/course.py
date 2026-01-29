@@ -1,43 +1,42 @@
-from typing import TYPE_CHECKING, Annotated, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime
 import uuid
-from sqlalchemy.dialects.mysql import BINARY # dialetto MySQL specifico
 from sqlalchemy import Column, DateTime, func
 
 if TYPE_CHECKING:
     from .student import StudentInDB
     
 
-# -- modello CORSO BASE --
+# -- COURSE BASE --
 class CourseBase(SQLModel):
-    name: Annotated[str, Field(max_length=100)]
-    course_type: Annotated[str, Field(max_length=50)] 
-    schedule: Annotated[str | None, Field(max_length=100)]
-    schedule_type: Annotated[str | None, Field(max_length=100)] 
-    total_hours: Annotated[int, Field(max_digits=4)] 
-    internship_total_hours: Annotated[int, Field(max_digits=4)] 
+    name: str = Field(max_length=100)
+    course_type: str = Field(max_length=50)
+    schedule: Optional[str] = Field(max_length=100, default=None)
+    schedule_type: Optional[str] = Field(max_length=100, default=None)
+    total_hours: int = Field(gt=0)
+    internship_total_hours: int = Field(gt=0)
     start_date: date
-    location: Annotated[str, Field(max_length=100)]
-    is_active: Annotated[bool, Field(default=True)]
+    location: str = Field(max_length=100)
+    is_active: bool = Field(default=True)
 
 
-# -- modello CORSO IN DB --
+# -- COURSE IN DB --
 class CourseInDB(CourseBase, table=True):
-    # UUID come ID per i modelli per garantire maggior sicurezza (id unico e non prevedibile, che non fornisce informazioni sulla app)
-    course_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(BINARY(16)))] # forza BINARY(16) in MySQL
+    # UUID for models id to guarantee more security (unique and unpredictable id, that does not give info on the app)
+    course_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) 
     # Field(index=True) tells SQLModel that it should create a SQL index for this column
-    name: Annotated[str, Field(max_length=100, index=True, unique=True)]
-    # full_name: Annotated[str, Field(max_length=150)]
-    created_at: Annotated[datetime | None, Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))] 
+    name: str = Field(max_length=100, index=True, unique=True)
+   
+    created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
      
-    # Relazione inversa: lista studenti iscritti => si tratta solo di una relazione VIRTUALE, non di una vera proprietà
-    # la proprietà 'students' è collegata alla proprietà 'course' della classe Student
-    # permette da Course di accedere alla lista di studenti collegati al corso
+    # Inverse relationship: list of enrolled students => only a VIRTUAL relationship, not a actual property
+    # 'students' property is linked to the 'course' property of Student class
+    # allows to access the list of students linked to the course from Course itself
     students: List["StudentInDB"] = Relationship(back_populates="course")
 
 
-# -- modello CORSO PUBBLICO --
+# -- COURSE PUBLIC --
 class CoursePublic(CourseBase):
     course_id: uuid.UUID
 
@@ -45,6 +44,3 @@ class CoursePublic(CourseBase):
 
 
 
-# default=None con tipo int | None permette a SQLModel di non richiedere il valore all’inserimento (lo lascia al DB)
-    # L’auto-increment è abilitato automaticamente quando la colonna è intera, chiave primaria e ha default None
-    # course_id: Annotated[int | None, Field(default=None, primary_key=True)]

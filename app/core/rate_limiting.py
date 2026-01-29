@@ -5,7 +5,7 @@ from slowapi.errors import RateLimitExceeded
 
 limiter = Limiter(key_func=get_remote_address)
 
-# funzione che imposta e restituisce istanza limiter => importato direttamente da app e reso disponibile in tutta la app
+# limiter instance setup and return => app imports it directly and makes it available throughout the whole app
 def setup_rate_limiter(app: FastAPI):
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
