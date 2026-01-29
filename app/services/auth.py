@@ -1,243 +1,310 @@
+from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import uuid
-from sqlalchemy import select
+from pwdlib import PasswordHash
+from sqlalchemy.exc import SQLAlchemyError
 from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 import jwt
 from ..core.settings import settings
-from fastapi import HTTPException, status
 from pydantic import EmailStr
 from ..utils.validators import normalize_email
-from sqlmodel import delete, Session
+from sqlmodel import delete, Session, select
 import secrets
-from ..services.student import StudentService
 from ..utils.hash_reset_token import hash_reset_token
 from ..core.redis import rdb
 import logging
+from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .student import StudentService 
+
 
 logger = logging.getLogger(__name__)
-
+ # PasswordHash instance with Argon2 as hasher
+pwd_hash = PasswordHash.recommended()
 
 
 class AuthService():
     
 
-    # metodo di MATCH tra PWD IN CHIARO (input utente) e PWD HASHATA salvata nel DB
+    # -- VERIFY PASSWORD -- MATCH between PLAIN PWD (user input) and HASHED PWD saved in DB
     @staticmethod
     def verify_password(plain_password: str | bytes, hashed_password: str | bytes) -> bool:
-        return settings.pwd_hash.verify(plain_password, hashed_password)
+        
+        return pwd_hash.verify(plain_password, hashed_password)
 
 
-    # metodo per CREARE HASH di una PWD IN CHIARO
+
+    # -- GET_PASSWORD_HASH -- CREATE HASH of PLAIN PWD --
     @staticmethod
     def get_password_hash(password: str | bytes) -> str:
-        return settings.pwd_hash.hash(password)
+        
+        return pwd_hash.hash(password)
+
 
     
-    # -- funzione CREAZIONE TOKEN -- crea token con id studente e valore exp
+    # -- CREATE ACCESS TOKEN -- create token with student id and expiration value
     @staticmethod
     def create_access_token(id: uuid.UUID, expires_delta: timedelta | None = None) -> str:
-            # calcolo expires_delta
+        
+            # calculate expires_delta
             if expires_delta:
                 expire = datetime.now(timezone.utc) + expires_delta
             else:
                 expire = datetime.now(timezone.utc) + timedelta(minutes=15)
             
-           # creo un id per il claim jti (usato per blacklist redis) 
+           # create id for jti claim (used for redis blacklist) 
             jti = str(uuid.uuid4()) 
-            # payload (1/3 elementi del JWT con header e signature) formato da claim "sub" (subject) con valore id univoco + claim "exp" + claim "jti"
+            # 'payload' (1/3 JWT elements together with 'header' and 'signature') made of a "sub" claim (subject) with unique id + "exp" claim + "jti" claim
             payload = {
                 "sub": str(id),
                 "exp": expire,
-                "jti": jti
+                "jti": jti # JWT ID
             }
-            # secret_key e algorithm presi da classe settings che legge variabili d'ambiente da .env
+            # secret_key and algorithm taken from settings class that reads .env variables 
             encoded_jwt = jwt.encode(payload, settings.secret_key, settings.algorithm)
+            
+            logger.debug("Access token created")
             
             return encoded_jwt
         
+        
     
-    # -- funzione VALIDAZIONE TOKEN -- decodifica del token e restituzione ID UTENTE (TokenData)
+    # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
     @staticmethod
     async def validate_access_token(token: str) -> AccessTokenData:
-        # creo HTTP exception in caso di errore di validazione token
-        invalid_token_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
        
         try:
-            # decodifico il token ricevuto
+            logger.debug("Validating access token")
+            # decode received token 
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-            # estraggo il claim "jti" 
+            # extract "jti" claim
             jti = payload.get("jti")
-            # controllo che il jti non sia in blacklist redis
-            if jti and await rdb.get(f"blacklist:{jti}"):
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token revoked")
-            # estraggo il claim "sub" (contenente l'id)
-            student_id = payload.get("sub")
-            if student_id is None:
-                raise invalid_token_exception
             
-            # restituisco un oggetto TokenData per maggior controllo
+            # check whether jti is redis blacklisted 
+            if jti and await rdb.get(f"blacklist:{jti}"):
+                logger.warning("Access token revoked. Validation failed")
+                raise jwt.InvalidTokenError("Token revoked")
+            
+            # extract "sub" claim (contains id)
+            student_id = payload.get("sub")
+            
+            if student_id is None:
+                logger.warning("Missing 'sub' claim. Invalid access token")
+                raise jwt.InvalidTokenError("Missing student ID")
+            
+            logger.debug("Access token validated")
+            # return TokenData object for better control
             return AccessTokenData(student_id=student_id)
+    
+          
+        except jwt.PyJWTError: 
+            logger.error("PyJWTError - check settings")
+            raise
         
-        except (jwt.PyJWTError, ValueError):
-            raise invalid_token_exception
+        except ValueError:
+            logger.warning("Payload ValueError")
+            raise jwt.InvalidTokenError("Invalid payload")
+        
         
  
-        
+    # -- CREATE RESET TOKEN -- for password reset request
     @staticmethod
     def create_reset_token(
         email: EmailStr,
         student_service: StudentService,
         session: Session
         ) -> str:
-        # controllo internamente che l'email corrisponda a un utente registrato
+        
+        # check whether email belongs to registered student
         student_in_db = student_service.get_student_by_email(email)
-        # se non esiste loggo errore internamente e esco 
+        
+        # if not, log the error internally and exit
         if not student_in_db:
-            raise ValueError("Email not registered") # solo interno
+            logger.warning("Email not found. Cannot create reset token")
+            raise ValueError("Email not registered") # only within the app => intercepted by request_password_reset with 'pass' => no info to the client
         
-        # se esiste, normalizzo l'email per evitare errori come abc@xyz.COM vs. abc@xyz.com
+        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
         normalized_email = normalize_email(email)
-        # elimino eventuale reset token già esistente
-        delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
-        session.exec(delete_previuos_tokens)
-        session.commit()
         
-        # creo un nuovo token
-        raw_token = secrets.token_urlsafe(32)
-        # hasho il token
-        token_hash = hash_reset_token(raw_token)
-        # creo un nuovo ResetToken con token hashato associato all'email
-        reset_token = ResetTokenInDB(
-            email=normalized_email,
-            token_hash=token_hash,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
-        )
-        session.add(reset_token)
-        session.commit()
-        
+        # with block => auto-commit + auto-rollback
+        with session.begin(): 
+            # delete any other already existing token
+            delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
+            session.exec(delete_previuos_tokens)
+            # create new token
+            raw_token = secrets.token_urlsafe(32)
+            # hash token
+            token_hash = hash_reset_token(raw_token)
+            # create new ResetToken with hashed token linked to email
+            reset_token = ResetTokenInDB(
+                email=normalized_email,
+                token_hash=token_hash,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+            )
+            session.add(reset_token)
+            
+        logger.debug(f"Reset token created for email {normalized_email}")
+    
         return raw_token
     
+       
     
     # -- VALIDATE RESET TOKEN --
     @staticmethod
     def validate_reset_token(raw_reset_token: str, session: Session) -> ResetTokenInDB:
-        # hasho il token raw
-        reset_token_hash = hash_reset_token(raw_reset_token)
-        # definisco query per selezionare reset token valido dal db
-        check_token = select(ResetTokenInDB).where(
-            ResetTokenInDB.token_hash == reset_token_hash,
-            ResetTokenInDB.expires_at > datetime.now(timezone.utc)
-        )
-        # eseguo la query => token | None
-        db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
         
-        if not db_valid_token:
-            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        # hash raw token
+        reset_token_hash = hash_reset_token(raw_reset_token)
+        
+        with session.begin():
+            # query to select valid reset token  from db
+            check_token = select(ResetTokenInDB).where(
+                ResetTokenInDB.token_hash == reset_token_hash,
+                ResetTokenInDB.expires_at > datetime.now(timezone.utc)
+            )
+            # execute query => token | None
+            db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
+            
+            if not db_valid_token:
+                logger.warning("Invalid/expired reset token attempt")
+                raise InvalidResetTokenError()
         
         return db_valid_token
-    
+        
+       
     
     # -- CREATE REFRESH TOKEN --
     @staticmethod 
     def create_refresh_token(student_id: uuid.UUID, session: Session) -> str:
         
-        # creo token raw
+        # create raw token
         raw_refresh_token = str(uuid.uuid4())
-        # creo hash token
+        
+        # create token hash 
         hashed_refresh_token = AuthService.get_password_hash(raw_refresh_token)
-        # creo istanza token in db
+        
+        # crete RefreshTokenInDB
         refresh_token_in_db = RefreshTokenInDB(
             student_id=student_id,
-            token_hash=hashed_refresh_token
+            token_hash=hashed_refresh_token,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
         )
         
-        session.add(refresh_token_in_db)
-        session.commit()
-        session.refresh(refresh_token_in_db)
+        session.add(refresh_token_in_db) # session.commit() will be executed from the function that calls this method (e.g. login_for_access_token())
+        
+        logger.debug(f"Refresh token created for student {student_id}")
         
         return raw_refresh_token
+        
+        
     
     
-    # -- VALIDATE REFRESH TOKEN -- restituisco token o None
+    # -- VALIDATE REFRESH TOKEN -- -> token | None
     @staticmethod
     def validate_refresh_token(refresh_token: str, student_id: uuid.UUID, session: Session) -> RefreshTokenInDB | None:
         
-        logger.info(f"Validating refresh token for student: {student_id}")
-      
-        logger.debug(f"Raw token: {refresh_token[:20]}")
-        # hasho il token raw
-        hashed_refresh_token = AuthService.get_password_hash(refresh_token)
-        logger.debug(f"Hashed token: '{hash_reset_token[:20]}'")
+        try:
+            logger.info(f"Validating refresh token for student: {student_id}")
+            logger.debug(f"Raw token: {refresh_token[:20]}")
+            
+            # hash raw token
+            hashed_refresh_token = AuthService.get_password_hash(refresh_token)
+            logger.debug(f"Hashed token: '{hashed_refresh_token[:20]}'")
+            
+            # query select existing token in db 
+            check_token_validity = select(RefreshTokenInDB).where(
+                RefreshTokenInDB.student_id == student_id,
+                RefreshTokenInDB.token_hash == hashed_refresh_token
+            )
+            # execute query
+            valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
+            
+            # if token incorrect or expired (deleted from db), error
+            if not valid_token:
+                logger.warning(f"Token not found in DB: invalid/expired")
+                return None
+            
+            # if token revoked, error
+            if valid_token.revoked_at is not None:
+                logger.warning(f"Refresh token revoked at {valid_token.revoked_at}")
+                return None
+            
+            # if token expired, but not yet deleted from db, ERROR
+            if valid_token.expires_at <= datetime.now(timezone.utc):
+                logger.warning(f"Refresh token expired: {valid_token.expires_at} < {datetime.now(timezone.utc)}")
+                return None
+            
+            logger.debug(f"Refresh token validated successfully for student {student_id}")
+            
+            return valid_token
         
-        # definisco query db 
-        check_token_validity = select(RefreshTokenInDB).where(
-            RefreshTokenInDB.student_id == student_id,
-            RefreshTokenInDB.token_hash == hashed_refresh_token
-        )
-        # eseguo query
-        valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
-        
-        # se il token è sbagliato o già scaduto (eliminato dal db): errore
-        if not valid_token:
-            logger.warning(f"Token not found in DB: invalid or expired")
+        except(SQLAlchemyError, ValueError, TypeError) as e:
+            logger.error(f"DB/hash error during refresh token validation for student {student_id}: {str(e)}")
             return None
-        # se il token è stato revocato: errore
-        if valid_token.revoked_at is not None:
-            logger.warning(f"Token found, but revoked at {valid_token.revoked_at}")
-            return None
-        
-        # nel caso in cui il token sia scaduto, ma non sia ancora stato ripulito dal db: ERRORE
-        if valid_token.expires_at <= datetime.now(timezone.utc):
-            logger.warning(f"Token expired: {valid_token.expires_at} < {datetime.now(timezone.utc)}")
-            return None
-        
-        logger.info("Refresh token validated successfully")
-        
-        return valid_token
+    
     
     
     # -- REFRESH TOKEN ROTATION --
     @staticmethod
     def rotate_refresh_token(refresh_token: RefreshTokenInDB, session: Session) -> str:
         
-        # estraggo id studente
-        student_id = refresh_token.student_id
+        try:
+            # extract student id
+            student_id = refresh_token.student_id
+            
+            with session.begin():
+                # revoke current refresh_token
+                refresh_token.revoked_at = datetime.now(timezone.utc)
+                session.add(refresh_token)
+            
+                # create new refresh token
+                new_refresh_token = AuthService.create_refresh_token(student_id, session) 
+                
+            logger.debug(f"Refresh token rotated for student {student_id}")
+            
+            return new_refresh_token
         
-        # revoco l'attuale refresh_token
-        refresh_token.revoked_at = datetime.now(timezone.utc)
-        session.add(refresh_token)
-        session.commit()
-        
-        # creo un nuovo refresh token
-        new_refresh_token = AuthService.create_refresh_token(student_id, session) 
-        
-        return new_refresh_token
+        except Exception as e:
+            
+            logger.error(f"Refresh token rotation failed for student {student_id}: {str(e)}")
+            raise DatabaseError("Refresh token rotation failed")
     
     
-    # -- FUNZIONE ENDPOINT /REFRESH -- 
+    
+    # -- REFRESH TOKENS -- /refresh endpoint function
     @staticmethod
     def refresh_tokens(refresh_token: str, student_id: uuid.UUID, session: Session) -> AccessRefreshToken:
-        # valido il refresh token ricevuto
-        valid_refresh_token: RefreshTokenInDB | None = AuthService.validate_refresh_token(refresh_token, student_id, session)
         
-        if not valid_refresh_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+        try:
+            # validate received refresh token 
+            valid_refresh_token: RefreshTokenInDB | None = AuthService.validate_refresh_token(refresh_token, student_id, session)
+            
+            if not valid_refresh_token:
+                logger.warning(f"Invalid refresh token attempt for student {student_id}")
+                raise InvalidRefreshTokenError()
+            
+            # rotate token (revoke old token + create new)
+            new_refresh_token: str = AuthService.rotate_refresh_token(valid_refresh_token, session)
+            
+            # create new access token
+            new_access_token = AuthService.create_access_token(
+                student_id, 
+                timedelta(minutes=settings.access_token_expire_minutes)
             )
+            
+            logger.info(f"Tokens refreshed successfully for student {student_id}")
+            
+            return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
         
-        # effettuo rotazione token (revoca vecchio token + creazione nuovo)
-        new_refresh_token: str = AuthService.rotate_refresh_token(valid_refresh_token, session)
+        except (InvalidRefreshTokenError, DatabaseError):
+            raise 
         
-        # creo un nuovo access token
-        new_access_token = AuthService.create_access_token(student_id, settings.access_token_expire_minutes)
-        
-        return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
-        
+        except Exception as e:
+            logger.error(f"Tokens refresh failed for student {student_id}: {str(e)}")
+            raise DatabaseError("Failed to refresh tokens")
+            
         
  
   

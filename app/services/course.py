@@ -1,7 +1,10 @@
 import uuid
-from fastapi import HTTPException, status
 from sqlmodel import Session, select
 from ..models.course import CourseInDB, CoursePublic
+import logging
+from ..exceptions.exceptions import CourseNotFoundError
+
+logger = logging.getLogger(__name__)
 
 
 class CourseService():
@@ -10,16 +13,15 @@ class CourseService():
         
     # -- GET STUDENT COURSE --
     def get_student_course(self, course_id: uuid.UUID) -> CoursePublic:
-        # seleziono corso in base a id
+        
+        # select course by id 
         get_course_stmt = select(CourseInDB).where(
             CourseInDB.course_id == course_id
         )
         student_course: CourseInDB | None = self._db.exec(get_course_stmt).first()
         
         if not student_course:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Course not found"
-            )
+            logger.warning(f"Course {course_id} not found")
+            raise CourseNotFoundError()
         
         return CoursePublic.model_validate(student_course)
