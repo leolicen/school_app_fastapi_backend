@@ -22,6 +22,7 @@ class InternshipService():
     def __init__(self, session: Session):
         self._db = session
         
+        
     
     # -- GET INTERNSHIP AGREEMENTS -- (a single student can have more than one agreement if they change company)
     def get_internship_agreements_list(self, current_student: StudentPublic) -> List[InternshipAgreementPublic]:
@@ -42,7 +43,6 @@ class InternshipService():
     
     
     
-    
     # -- GET OWNED AGREEMENT -- retrieve agreement only if owned 
     def get_owned_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> InternshipAgreementPublic | None:
         
@@ -57,6 +57,7 @@ class InternshipService():
         return InternshipAgreementPublic.model_validate(agreement) if agreement else None
   
     
+  
     
     # -- STUDENT OWNS SPECIFIC ACTIVE AGREEMENT -- 
     def student_owns_specific_active_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> bool:
@@ -112,6 +113,7 @@ class InternshipService():
     
     
     
+    
     # -- VALIDATE REMAINING HOURS --
     def validate_remaining_hours(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> None:
         
@@ -130,6 +132,7 @@ class InternshipService():
         if entry_hours > remaining_hours:
             logger.warning(f"Student is trying to insert {entry_hours} hours, but only {remaining_hours} are left")
             raise InternshipHoursExceededError(requested=entry_hours, remaining=remaining_hours)
+
 
 
 
@@ -162,6 +165,7 @@ class InternshipService():
     
     
     
+    
     # -- CREATE ENTRY AND UPDATE AGREEMENT --
     def create_entry_and_update_agreement(self, agreement_id: uuid.UUID, valid_entry: InternshipEntryInDB, entry_hours: Decimal) -> InternshipEntryInDB:
         
@@ -187,6 +191,7 @@ class InternshipService():
     
 
     
+    
     # -- CREATE INTERNSHIP ENTRY -- 
     def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         
@@ -206,15 +211,14 @@ class InternshipService():
         return InternshipEntryPublic.model_validate(created_entry)
        
         
+       
         
-    
-    
-    
-    # -- DELETE INTERNSHIP ENTRY -- 
-    def delete_internship_entry(self, entry_id: uuid.UUID) -> dict[str, str]:
+    # -- FIND DELETABLE ENTRY --
+    def find_deletable_entry(self, entry_id: uuid.UUID) -> InternshipEntryInDB:
         
         now = datetime.now(timezone.utc)
         
+        # retrieve deletable entry from db
         entry_to_delete = self._db.exec(
             select(InternshipEntryInDB).where(
             InternshipEntryInDB.entry_id == entry_id,
@@ -224,7 +228,15 @@ class InternshipService():
         
         if not entry_to_delete:
             raise InternshipEntryNotDeletableError()
-            
+        
+        return entry_to_delete
+    
+    
+    
+    
+    # -- DELETE ENTRY & UPDATE AGREEMENT --
+    def delete_entry_and_update_agreement(self, entry_to_delete: InternshipEntryInDB) -> None:
+        
         # get total entry hours to subtract
         entry_hours = entry_to_delete.end_time - entry_to_delete.start_time
         
@@ -236,7 +248,7 @@ class InternshipService():
             # delete entry
             self._db.delete(entry_to_delete)
             
-            # UPDATE AGREEMENT.ATTENDED_HOURS 
+            # update agreement attended hours
             agreement = self._db.get(InternshipAgreementInDB, agreement_id)
             
             if agreement:
@@ -245,8 +257,21 @@ class InternshipService():
                 agreement.attended_hours = max(updated_attended, Decimal("0"))
                 self._db.add(agreement)
         
+    
+    
+    
+    # -- DELETE INTERNSHIP ENTRY -- 
+    def delete_internship_entry(self, entry_id: uuid.UUID) -> dict[str, str]:
+        
+        # check if entry is deletable
+        entry_to_delete: InternshipEntryInDB = self.find_deletable_entry(entry_id)
+        
+        # delete entry & update agreement
+        self.delete_entry_and_update_agreement(entry_to_delete)
+        
 
         return {"message": "Entry deleted successfully"}
+    
     
     
     
