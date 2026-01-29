@@ -9,7 +9,9 @@ from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgr
 from ..models.student import StudentPublic
 from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
 import logging
-from ..exceptions.exceptions import AgreementForbiddenError, InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, InternshipEntryNotDeletableError
+from ..exceptions.exceptions import (AgreementForbiddenError, InternshipCompletedError, 
+                                     InternshipHoursExceededError, InternshipOverlappingEntryError, 
+                                     InternshipEntryNotDeletableError)
 
 logger = logging.getLogger(__name__)
 
@@ -107,16 +109,15 @@ class InternshipService():
         remaining_hours = total_hours-attended_hours
         
         return remaining_hours
-
-
-
     
-    # -- CREATE INTERNSHIP ENTRY -- 
-    def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
+    
+    
+    # -- VALIDATE REMAINING HOURS --
+    def validate_remaining_hours(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> None:
         
         # retrieve agreement remaining hours
         remaining_hours: Decimal = self.get_remaining_hours(agreement_id)
-            
+              
         # check if internship is already over
         if remaining_hours <= 0:
             logger.warning("Internship completed. Cannot create new entry.")
@@ -129,14 +130,19 @@ class InternshipService():
         if entry_hours > remaining_hours:
             logger.warning(f"Student is trying to insert {entry_hours} hours, but only {remaining_hours} are left")
             raise InternshipHoursExceededError(requested=entry_hours, remaining=remaining_hours)
+
+
+
+    # -- VALIDATE ENTRY NO OVERLAP --
+    def validate_entry_no_overlap(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryInDB:
         
-        # check perfect duplicates with UniqueConstraint in InDB model
+         # check perfect duplicates with UniqueConstraint in InDB model
         db_entry = InternshipEntryInDB.model_validate(entry)
         
         # check overlapping hours
         # exists() does not instantiate models, but only checks existence
         overlap_stmt = select(exists().where(
-            InternshipEntryInDB.agreement_id == db_entry.agreement_id,
+            InternshipEntryInDB.agreement_id == agreement_id,
             InternshipEntryInDB.date == db_entry.date,
             and_(
                 InternshipEntryInDB.start_time < db_entry.end_time, 
@@ -152,24 +158,55 @@ class InternshipService():
             logger.warning("Overlapping entry time")
             raise InternshipOverlappingEntryError()
         
-        with self._db.begin():
+        return db_entry
+    
+    
+    
+    # -- CREATE ENTRY AND UPDATE AGREEMENT --
+    def create_entry_and_update_agreement(self, agreement_id: uuid.UUID, valid_entry: InternshipEntryInDB, entry_hours: Decimal) -> InternshipEntryInDB:
         
+        with self._db.begin():
+
             # add db_entry to db
-            self._db.add(db_entry)
+            self._db.add(valid_entry)
             
-            # UPDATE AGREEMENT.ATTENDED_HOURS 
+            # retrieve agreement
             agreement = self._db.get(InternshipAgreementInDB, agreement_id)
             
+            # update agreement attended hours
             if agreement:
                 current_attended = agreement.attended_hours or Decimal("0")
                 updated_attended = current_attended + entry_hours
                 agreement.attended_hours = min(updated_attended, agreement.total_hours)
                 self._db.add(agreement)
             
-            self._db.refresh(db_entry)
+            self._db.refresh(valid_entry) 
+            
         
-        return InternshipEntryPublic.model_validate(db_entry)
+        return valid_entry
     
+
+    
+    # -- CREATE INTERNSHIP ENTRY -- 
+    def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
+        
+        # check if internship is over (remaining hours = 0) or if remaining hours are less than entry ones
+        self.validate_remaining_hours(agreement_id, entry)
+        
+        # check overlapping hours and return EntryInDB
+        valid_db_entry: InternshipEntryInDB = self.validate_entry_no_overlap(entry)
+        
+        # get total entry hours to add 
+        entry_hours = entry.end_time - entry.start_time
+        
+       # add entry to db, update agreement and return EntryInDB
+        created_entry: InternshipEntryInDB = self.create_entry_and_update_agreement(agreement_id, valid_db_entry, entry_hours)
+        
+        
+        return InternshipEntryPublic.model_validate(created_entry)
+       
+        
+        
     
     
     
