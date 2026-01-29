@@ -8,7 +8,6 @@ from sqlalchemy import delete, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 from app.core.settings import settings
-
 from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
@@ -16,7 +15,8 @@ from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..core.redis import rdb
 import logging
-from ..exceptions.exceptions import InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, StudentNotFoundError, InvalidCurrentPasswordError
+from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
+                                     StudentNotFoundError, InvalidCurrentPasswordError)
 from typing import TYPE_CHECKING
 
 
