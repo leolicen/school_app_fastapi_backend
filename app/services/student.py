@@ -212,13 +212,17 @@ class StudentService():
         # substitute old hashed pwd with new hashed pwd
         student_in_db.hashed_password = new_pwd_hash
         
+        # add pwd change datetime
+        student_in_db.pwd_changed_at = datetime.now(timezone.utc)
+        
         try:
+            self._db.add(student_in_db)
             self._db.commit()
             self._db.refresh(student_in_db)
             
         except Exception as e:
             self._db.rollback()
-            raise DatabaseError(f"Failed to change password: {str(e)}")
+            raise DatabaseError(f"Failed to change password")
         
         
         
@@ -257,10 +261,13 @@ class StudentService():
         # substitute old pwd hash with new one
         student_in_db.hashed_password = new_pwd_hash
         
+        # add pwd reset datetime
+        student_in_db.pwd_reset_at = datetime.now(timezone.utc)
+        
         try:
             # delete reset token 
             self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
-            
+            self._db.add(student_in_db)
             self._db.commit()
             self._db.refresh(student_in_db)
         

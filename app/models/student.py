@@ -37,6 +37,10 @@ class StudentInDB(StudentBase, table=True):
     email: str = Field(unique=True, index=True)
     hashed_password: str = Field(max_length=255, index=True)
     course_id: uuid.UUID = Field(foreign_key="courseindb.course_id")
+    
+    student_updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())) # automatically adds time when model is updated
+    pwd_changed_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    pwd_reset_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
    
     is_active: bool = Field(default=True)
     # creation date & time for log/audit
