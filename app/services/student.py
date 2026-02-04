@@ -18,11 +18,12 @@ import logging
 from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
                                      StudentNotFoundError, InvalidCurrentPasswordError)
 from typing import TYPE_CHECKING
+from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 
 
 if TYPE_CHECKING:
     from .auth import AuthService
-    from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
+    
 
 
 logger = logging.getLogger(__name__)
