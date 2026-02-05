@@ -1,19 +1,19 @@
 from datetime import datetime, timedelta, timezone
 import uuid
+import jwt
 from pwdlib import PasswordHash
 from sqlalchemy.exc import SQLAlchemyError
+import redis.asyncio as redis
+import logging
+import secrets
+from pydantic import EmailStr
+from sqlmodel import delete, Session, select
 
 from ..models.student import StudentInDB
 from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
-import jwt
 from ..core.settings import settings
-from pydantic import EmailStr
 from ..utils.validators import normalize_email
-from sqlmodel import delete, Session, select
-import secrets
 from ..utils.hash_reset_token import hash_reset_token
-from ..core.redis import rdb
-import logging
 from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
 
 
@@ -23,6 +23,10 @@ pwd_hash = PasswordHash.recommended()
 
 
 class AuthService():
+    
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
+        
     
 
     # -- VERIFY PASSWORD -- MATCH between PLAIN PWD (user input) and HASHED PWD saved in DB
@@ -69,8 +73,8 @@ class AuthService():
         
     
     # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
-    @staticmethod
-    async def validate_access_token(token: str) -> AccessTokenData:
+    
+    async def validate_access_token(self, token: str) -> AccessTokenData:
        
         try:
             logger.debug("Validating access token")
@@ -80,7 +84,7 @@ class AuthService():
             jti = payload.get("jti")
             
             # check whether jti is redis blacklisted 
-            if jti and await rdb.get(f"blacklist:{jti}"):
+            if jti and await self.redis.get(f"blacklist:{jti}"):
                 logger.warning("Access token revoked. Validation failed")
                 raise jwt.InvalidTokenError("Token revoked")
             
@@ -294,7 +298,7 @@ class AuthService():
             
             logger.info(f"Tokens refreshed successfully for student {student_id}")
             
-            return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
+            return AccessRefreshToken(access_token=new_access_token, token_type="Bearer", refresh_token=new_refresh_token)
         
         except (InvalidRefreshTokenError, DatabaseError):
             raise 
