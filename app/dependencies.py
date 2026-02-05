@@ -13,6 +13,7 @@ from .services.course import CourseService
 from .services.internship import InternshipService
 import logging
 from .exceptions.exceptions import InactiveStudentError
+from .services.auth import AuthService
 
 
 logger = logging.getLogger(__name__)
@@ -22,10 +23,17 @@ logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
+# -- AUTH SERVICE DEPENDENCY --
+def get_auth_service():
+    return AuthService()
+
 
 # -- STUDENT SERVICE DEPENDENCY --
-def get_student_service(session: SessionDep):
-    return StudentService(session=session)
+def get_student_service(
+    session: SessionDep, 
+    auth_service: Annotated[AuthService, Depends(get_auth_service)]): # auth service injected as dependency 
+    
+    return StudentService(session=session, auth_service=auth_service) # auth service already available within student service injected in the endpoints
 
 
 # -- COURSE SERVICE DEPENDENCY --

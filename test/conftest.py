@@ -1,11 +1,15 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import CheckConstraint
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
-import app.models
+
+import app.models # only loads models into SQLModel.metadata so that all tables can be created with create_all
 from app.app import app
 from app.core.database import get_session
+from app.models.student import StudentInDB
+from app.services.auth import AuthService
 
 
 
@@ -44,6 +48,30 @@ def client_fixture(session: Session): # session returned by the session fixture
     yield client
     
     app.dependency_overrides.clear()
+    
+    
+
+# -- TEST USER FIXTURE --
+@pytest.fixture(name="test_user")
+def test_user_fixture(session: Session):
+    """ Creates a test user in DB """
+    
+    user = StudentInDB(
+        name="John",
+        surname="Doe",
+        email="john.doe@gmail.com",
+        course_id=uuid.uuid4(),
+        hashed_password=AuthService.get_password_hash("!#CrediblePasSw0rd")
+    )
+    
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return user
+
+
+
     
     
     

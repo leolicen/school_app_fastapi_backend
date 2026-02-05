@@ -1,8 +1,9 @@
-from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import uuid
 from pwdlib import PasswordHash
 from sqlalchemy.exc import SQLAlchemyError
+
+from ..models.student import StudentInDB
 from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 import jwt
 from ..core.settings import settings
@@ -14,10 +15,6 @@ from ..utils.hash_reset_token import hash_reset_token
 from ..core.redis import rdb
 import logging
 from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .student import StudentService 
 
 
 logger = logging.getLogger(__name__)
@@ -113,20 +110,21 @@ class AuthService():
     @staticmethod
     def create_reset_token(
         email: EmailStr,
-        student_service: StudentService,
         session: Session
         ) -> str:
         
-        # check whether email belongs to registered student
-        student_in_db = student_service.get_student_by_email(email)
+        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
+        normalized_email = normalize_email(email)
+        # check whether email belongs to registered student => student_service.get_student_by_email(email) is not used to avoid circular import errors 
+        student_in_db = session.exec(
+            select(StudentInDB).where(StudentInDB.email == normalized_email)
+        ).first()
         
         # if not, log the error internally and exit
         if not student_in_db:
             logger.warning("Email not found. Cannot create reset token")
             raise ValueError("Email not registered") # only within the app => intercepted by request_password_reset with 'pass' => no info to the client
         
-        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
-        normalized_email = normalize_email(email)
         
         # with block => auto-commit + auto-rollback
         with session.begin(): 

@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy import Column, DateTime, func
 from ..utils.validators import strong_password_validator, normalize_email
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: # only static type check, does not work at runtime (errors with imports of code like services)
     from .course import CourseInDB
     from .internship_agreement import InternshipAgreementInDB
     from .auth import RefreshTokenInDB
