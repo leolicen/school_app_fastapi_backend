@@ -2,18 +2,19 @@ import uuid
 from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
+import logging
+import redis.asyncio as redis
 from pydantic import EmailStr
 from sqlalchemy import delete, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
+
 from app.core.settings import settings
 from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
 from datetime import datetime, timedelta, timezone
-from ..core.redis import rdb
-import logging
 from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
                                      StudentNotFoundError, InvalidCurrentPasswordError)
 
@@ -28,9 +29,10 @@ logger = logging.getLogger(__name__)
 class StudentService():
     
     
-    def __init__(self, session: Session, auth_service: AuthService): 
+    def __init__(self, session: Session, auth_service: AuthService, redis_client: redis.Redis): 
         self._db = session
         self.auth_service = auth_service
+        self.redis = redis_client
         
     
     # --  GET STUDENT BY EMAIL -- 
@@ -105,7 +107,7 @@ class StudentService():
             
             self._db.commit()
             
-            return AccessRefreshToken(access_token=access_token, token_type="bearer", refresh_token=refresh_token) 
+            return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token) 
             
         except Exception as e:
             self._db.rollback()
@@ -341,7 +343,7 @@ class StudentService():
             
             if ttl > 0:
                 # insert JTI in BLACK LIST REDIS
-                await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
+                await self.redis.setex(f"blacklist:{jti}", int(ttl), "1") 
                 # 1 indicates that the inserted key exists in the list (1 because it's the smallest value possible, any other would be potentially accepted in the same way)
                 logger.debug(f"Blacklisted access token {jti[:8]}... (TTL: {ttl}s)")
         
