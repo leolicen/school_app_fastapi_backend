@@ -37,9 +37,9 @@ def session_fixture():
 def mock_redis_fixture():
     
     redis_mock = AsyncMock()
-    redis_mock.get.return_value = None # access token not blacklisted
-    redis_mock.setex.return_value = True
-    redis_mock.aclose.return_value = None
+    redis_mock.get.return_value = None # simulates access token not blacklisted
+    redis_mock.setex.return_value = True # simulates successful token blacklisting 
+    redis_mock.aclose.return_value = None # simulates closing of redis client connection (normally returns None)
     
     return redis_mock
 
