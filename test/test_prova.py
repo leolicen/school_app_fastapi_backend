@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from app.models.student import StudentInDB
 
 
-@pytest.mark.anyio
+
 async def test_get_current_student_with_valid_token(async_client: AsyncClient, auth_header):
     
     response = await async_client.get("/students/me", headers=auth_header)
