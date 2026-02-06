@@ -5,6 +5,7 @@ from sqlalchemy import CheckConstraint
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 from unittest.mock import AsyncMock
+from httpx import ASGITransport, AsyncClient
 
 import app.models # only loads models into SQLModel.metadata so that all tables can be created with create_all
 from app.app import app
@@ -45,7 +46,7 @@ def mock_redis_fixture():
 
         
 
-# -- CLIENT FIXTURE --
+# -- SYNC CLIENT FIXTURE --
 @pytest.fixture(name="client")
 def client_fixture(session: Session, mock_redis): # session returned by the session fixture
     
@@ -61,12 +62,39 @@ def client_fixture(session: Session, mock_redis): # session returned by the sess
     # override get_redis dependency
     app.dependency_overrides[get_redis] = get_redis_override
 
-    # create a client for our app
+    # create a sync client for our app
     client = TestClient(app)
     
     yield client
     
     app.dependency_overrides.clear()
+    
+
+# -- ASYNC CLIENT FIXTURE -- => for testing endpoints with complex asynchronous logic, calls to async external services, to avoid event loop issues
+@pytest.fixture(name="async_client")
+async def async_client_fixture(session: Session, mock_redis):
+    
+    # create override function that returns the test session
+    def get_session_override():
+        return session
+    
+    async def get_redis_override():
+        yield mock_redis
+
+    # override get_session dependency
+    app.dependency_overrides[get_session]= get_session_override
+    # override get_redis dependency
+    app.dependency_overrides[get_redis] = get_redis_override
+    
+    # create async client for our app
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        yield client
+    
+    app.dependency_overrides.clear()
+    
     
     
 
@@ -91,9 +119,9 @@ def test_user_fixture(session: Session):
 
 
 @pytest.fixture(name="auth_header")
-def auth_header_fixture(client: TestClient, test_user: StudentInDB):
+async def auth_header_fixture(async_client: AsyncClient, test_user: StudentInDB):
     
-    response = client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
+    response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
     
     access_token = response.json()["access_token"]
     token_type = response.json()["token_type"]
