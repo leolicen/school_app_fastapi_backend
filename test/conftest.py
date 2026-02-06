@@ -118,15 +118,29 @@ def test_user_fixture(session: Session):
     return user
 
 
-@pytest.fixture(name="auth_header")
-async def auth_header_fixture(async_client: AsyncClient, test_user: StudentInDB):
+
+# -- ACCESS TOKEN FIXTURE -- => access token string for testing single functions that require token as a string
+@pytest.fixture(name="access_token")
+async def access_token_fixture(async_client: AsyncClient, test_user: StudentInDB):
+    """ Returns JWT token string only. Used for functions testing. """
     
     response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
     
-    access_token = response.json()["access_token"]
-    token_type = response.json()["token_type"]
+    return response.json()["access_token"]
     
-    return {"Authorization": f"{token_type} {access_token}"}
+    
+
+
+# -- AUTH HEADER FIXTURE -- => authorization header for endpoint testing only (they require the whole header)
+@pytest.fixture(name="auth_header")
+async def auth_header_fixture(access_token):
+    """ Returns Authorization header with Bearer token. Used for endpoint testing. """
+   
+    
+    return {"Authorization": f"Bearer {access_token}"}
+
+
+
 
 
 
