@@ -35,6 +35,22 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
+# -- LIFESPAN -- to be inserted into FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # codice startup (prima di yield)
+    create_db_and_tables() 
+      
+    yield 
+    
+      
+    # shutdown app code (after yield, optional) for resources cleanup, db closing, etc
+    
+    
+
+
+
+
 # --  DELETE EXPIRED REFRESH TOKENS --
 def delete_expired_refresh_tokens(session: Session) -> int:
    
@@ -80,18 +96,7 @@ def activate_agreements(session: Session) -> int:
 
 
 
-# -- LIFESPAN -- to be inserted into FastAPI()
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # codice startup (prima di yield)
-    create_db_and_tables() 
-      
-    yield 
-    
-      
-    # shutdown app code (after yield, optional) for resources cleanup, db closing, etc
-    
-    
+
     
 
 # -- CRON JOB => DELETE EXPIRED REFRESH TOKEN hourly --
