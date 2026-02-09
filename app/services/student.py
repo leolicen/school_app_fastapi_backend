@@ -16,9 +16,10 @@ from ..utils.validators import normalize_email
 from .email import EmailService
 from datetime import datetime, timedelta, timezone
 from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
-                                     StudentNotFoundError, InvalidCurrentPasswordError)
+                                     StudentNotFoundError, InvalidCurrentPasswordError, CourseNotFoundError)
 
 from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
+from ..models.course import CourseInDB
 from .auth import AuthService
 
 
@@ -122,8 +123,15 @@ class StudentService():
         if self.get_student_by_email(student.email):
             raise DuplicateEmailError()
         
-        # if not, hash given password
+        # check if inserted course_id is an existing course
+        course = self._db.get(CourseInDB, student.course_id)
+        
+        if not course:
+            raise CourseNotFoundError()
+        
+        # hash given password
         hashed_password = self.auth_service.get_password_hash(student.password)
+        
         
         # create new StudentInDB model
         new_student = StudentInDB(
