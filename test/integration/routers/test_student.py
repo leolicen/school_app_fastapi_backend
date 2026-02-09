@@ -2,6 +2,8 @@ from httpx import AsyncClient
 import logging
 import json
 
+from app.utils.json_printer import print_json_response
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +14,7 @@ async def test_get_current_student_with_valid_token(async_client: AsyncClient, a
     
     response = await async_client.get("/students/me", headers=auth_header)
     
-    print("\n")
-    print("Response model:")
-    print(json.dumps(response.json(), indent=2, ensure_ascii=False))
-    print("\n")
+    print_json_response(json_response=response.json(), response_name="Current student profile")
     
     assert response.status_code == 200
     assert response.json()["surname"] == "Doe"
