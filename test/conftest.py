@@ -1,3 +1,4 @@
+from datetime import date
 import uuid
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from app.core.database import get_session
 from app.models.student import StudentInDB
 from app.services.auth import AuthService
 from app.core.redis import get_redis
+from app.models.course import CourseInDB
 
 
 
@@ -138,6 +140,28 @@ async def auth_header_fixture(access_token):
    
     
     return {"Authorization": f"Bearer {access_token}"}
+
+
+
+# -- TEST COURSE FIXTURE --
+@pytest.fixture(name="test_course")
+async def test_course_fixture(session: Session):
+    
+    course = CourseInDB(
+        name="Biennio 2023-25 Cyber",
+        course_type="Corso collettivo",
+        total_hours=2000,
+        internship_total_hours=800,
+        start_date=date(2023,11,6),
+        location="ITS Umbria Academy.ITS-Scalo Merci",
+        course_id=uuid.uuid4()
+    )
+    
+    session.add(course)
+    session.commit()
+    session.refresh(course)
+    
+    return course
 
 
 
