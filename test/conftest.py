@@ -18,7 +18,7 @@ from app.models.course import CourseInDB
 
 
 
-# -- SESSION FIXTURE --
+# -- SESSION FIXTURE -- creates a new in-memory db for each and every test
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(
@@ -34,6 +34,8 @@ def session_fixture():
     
     with Session(engine) as session:
         yield session # return session  
+        
+        session.rollback()
         
 
 @pytest.fixture(name="mock_redis")
