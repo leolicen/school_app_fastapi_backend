@@ -1,0 +1,19 @@
+# Non copiare il .env nell'immagine (le variabili vengono passate da docker-compose)
+.env
+
+# Files non necessari
+.git
+.venv
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+*.log
+
+# Test files
+test/
+
+# Documentation
+README.md
