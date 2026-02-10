@@ -28,7 +28,7 @@ class Settings(BaseSettings):
         # compose URL that directs to DB 
         # charset=utf8mb4 => complete unicode 
         # pool_timeout=30 => max wait for free connection (30s)
-        return f"mysql+pymysql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}?charset=utf8mb4&pool_timeout=30"
+        return f"mysql+pymysql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}?charset=utf8mb4"
     
     # -- JWT --
     secret_key: str
