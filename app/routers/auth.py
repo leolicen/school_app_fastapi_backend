@@ -54,6 +54,7 @@ def register_student(
     return student_service.register_and_login(student)
 
 
+
 # -- REQUEST PASSWORD RESET --
 # PUBLIC
 @router.post("/password/reset-request", response_model=dict[str, str])

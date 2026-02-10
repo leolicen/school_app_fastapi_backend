@@ -2,6 +2,8 @@ import logging
 import sys
 import os
 
+        
+
 
 def setup_logging() -> logging.Logger:
     
@@ -32,15 +34,19 @@ def setup_logging() -> logging.Logger:
 
     # -- CREATE HANDLERS --
     
-    # Handler 1 => INFO (stdout) => shows only INFO level logs, because we have a second handler for higher levels
+    # Handler 1 => DEBUG/INFO (stdout) => shows only DEBUG/INFO level logs, because we have a second handler for higher levels
     stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.INFO)
+    stdout_handler.setLevel(logging.DEBUG) # if .env LOG_LEVEL == INFO, it logs only INFO, otherwise DEBUG & INFO
     stdout_handler.setFormatter(formatter)
+    # custom filter to avoid the 2 handlers to log the same records whenever the level is >= warning
+    stdout_handler.addFilter(lambda record: record.levelno <= logging.INFO) # without filter it would log everything from INFO and up
+     
     
     # Handler 2 => WARNING > (stderr) => shows logs from WARNING and up 
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(logging.WARNING)
     stderr_handler.setFormatter(formatter)
+   
 
 
     # add handlers

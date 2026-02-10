@@ -1,37 +1,39 @@
-from __future__ import annotations
 import uuid
 from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
+import logging
+import redis.asyncio as redis
 from pydantic import EmailStr
 from sqlalchemy import delete, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
+
 from app.core.settings import settings
 from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
 from ..models.password import ChangePassword
 from ..utils.validators import normalize_email
 from .email import EmailService
 from datetime import datetime, timedelta, timezone
-from ..core.redis import rdb
-import logging
 from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
-                                     StudentNotFoundError, InvalidCurrentPasswordError)
-from typing import TYPE_CHECKING
+                                     StudentNotFoundError, InvalidCurrentPasswordError, CourseNotFoundError)
 
+from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
+from ..models.course import CourseInDB
+from .auth import AuthService
 
-if TYPE_CHECKING:
-    from .auth import AuthService
-    from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
 
 
 logger = logging.getLogger(__name__)
 
 
-
 class StudentService():
-    def __init__(self, session: Session): 
+    
+    
+    def __init__(self, session: Session, auth_service: AuthService, redis_client: redis.Redis): 
         self._db = session
+        self.auth_service = auth_service
+        self.redis = redis_client
         
     
     # --  GET STUDENT BY EMAIL -- 
@@ -63,13 +65,13 @@ class StudentService():
         
     # --  AUTHENTICATE STUDENT -- during login
     # returns StudentInDB (table model) because the function needs to access 'hashed_password' field + in login function, where the function will be called, only the Token will be returned
-    def authenticate_student(self, email: EmailStr, password: str) -> StudentInDB | False:
+    def authenticate_student(self, email: EmailStr, password: str) -> StudentInDB | None:
         
         if not (student:= self.get_student_by_email(email)): # walrus operator ':='
-            return False 
+            return None 
         
-        if not AuthService.verify_password(password, student.hashed_password):
-            return False
+        if not self.auth_service.verify_password(password, student.hashed_password):
+            return None
         
         return student
     
@@ -88,7 +90,6 @@ class StudentService():
         try:
             # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
             if student.deleted_at:
-                
                 delta = datetime.now(timezone.utc) - student.deleted_at
                 
                 if delta.days >= 30:
@@ -97,17 +98,17 @@ class StudentService():
                 student.deleted_at = None
                    
             # if student is authenticated, create access token with their id
-            access_token = AuthService.create_access_token(
+            access_token = self.auth_service.create_access_token(
                 student.student_id, 
                 timedelta(minutes=settings.access_token_expire_minutes)
                 )
         
             # create refresh token (token hash saved in db + raw token returned)
-            refresh_token = AuthService.create_refresh_token(student.student_id, self._db)
+            refresh_token = self.auth_service.create_refresh_token(student.student_id, self._db)
             
             self._db.commit()
             
-            return AccessRefreshToken(access_token=access_token, token_type="bearer", refresh_token=refresh_token) 
+            return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token) 
             
         except Exception as e:
             self._db.rollback()
@@ -122,8 +123,15 @@ class StudentService():
         if self.get_student_by_email(student.email):
             raise DuplicateEmailError()
         
-        # if not, hash given password
-        hashed_password = AuthService.get_password_hash(student.password)
+        # check if inserted course_id is an existing course
+        course = self._db.get(CourseInDB, student.course_id)
+        
+        if not course:
+            raise CourseNotFoundError()
+        
+        # hash given password
+        hashed_password = self.auth_service.get_password_hash(student.password)
+        
         
         # create new StudentInDB model
         new_student = StudentInDB(
@@ -203,11 +211,11 @@ class StudentService():
             raise StudentNotFoundError()
         
         # check if current pwd is equal to pwd saved in db 
-        if not AuthService.verify_password(pwd_change.current_password, student_in_db.hashed_password):
+        if not self.auth_service.verify_password(pwd_change.current_password, student_in_db.hashed_password):
             raise InvalidCurrentPasswordError()
         
         # hash new password
-        new_pwd_hash = AuthService.get_password_hash(pwd_change.new_pwd)
+        new_pwd_hash = self.auth_service.get_password_hash(pwd_change.new_pwd)
         
         # substitute old hashed pwd with new hashed pwd
         student_in_db.hashed_password = new_pwd_hash
@@ -231,7 +239,7 @@ class StudentService():
         
         try:
             # create one-time reset token (if email not valid raise ValueError)
-            token = AuthService.create_reset_token(email=student_email, student_service=self, session=self._db)
+            token = self.auth_service.create_reset_token(email=student_email, session=self._db)
             
             # attempt email transmission
             background_tasks.add_task(EmailService.send_reset_email, student_email, token)
@@ -256,7 +264,7 @@ class StudentService():
             raise StudentNotFoundError("Student associated with reset token not found")
         
         # create new pwd hash
-        new_pwd_hash = AuthService.get_password_hash(new_password)
+        new_pwd_hash = self.auth_service.get_password_hash(new_password)
         
         # substitute old pwd hash with new one
         student_in_db.hashed_password = new_pwd_hash
@@ -283,7 +291,7 @@ class StudentService():
     def confirm_password_reset(self, raw_reset_token: str, new_password: str) -> dict[str, str]:
         
        # validate reset token
-       valid_reset_token = AuthService.validate_reset_token(raw_reset_token, self._db)
+       valid_reset_token = self.auth_service.validate_reset_token(raw_reset_token, self._db)
        
        # reset password
        return self.reset_password(valid_reset_token, new_password)
@@ -343,7 +351,7 @@ class StudentService():
             
             if ttl > 0:
                 # insert JTI in BLACK LIST REDIS
-                await rdb.setex(f"blacklist:{jti}", int(ttl), "1") 
+                await self.redis.setex(f"blacklist:{jti}", int(ttl), "1") 
                 # 1 indicates that the inserted key exists in the list (1 because it's the smallest value possible, any other would be potentially accepted in the same way)
                 logger.debug(f"Blacklisted access token {jti[:8]}... (TTL: {ttl}s)")
         

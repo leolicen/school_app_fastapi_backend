@@ -1,23 +1,20 @@
-from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import uuid
+import jwt
 from pwdlib import PasswordHash
 from sqlalchemy.exc import SQLAlchemyError
-from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
-import jwt
-from ..core.settings import settings
-from pydantic import EmailStr
-from ..utils.validators import normalize_email
-from sqlmodel import delete, Session, select
-import secrets
-from ..utils.hash_reset_token import hash_reset_token
-from ..core.redis import rdb
+import redis.asyncio as redis
 import logging
-from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
-from typing import TYPE_CHECKING
+import secrets
+from pydantic import EmailStr
+from sqlmodel import delete, Session, select
 
-if TYPE_CHECKING:
-    from .student import StudentService 
+from ..models.student import StudentInDB
+from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
+from ..core.settings import settings
+from ..utils.validators import normalize_email
+from ..utils.hash_reset_token import hash_reset_token
+from ..exceptions.exceptions import InvalidResetTokenError, InvalidRefreshTokenError, DatabaseError
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +23,10 @@ pwd_hash = PasswordHash.recommended()
 
 
 class AuthService():
+    
+    def __init__(self, redis_client: redis.Redis):
+        self.redis = redis_client
+        
     
 
     # -- VERIFY PASSWORD -- MATCH between PLAIN PWD (user input) and HASHED PWD saved in DB
@@ -72,8 +73,8 @@ class AuthService():
         
     
     # -- VALIDATE ACCESS TOKEN -- decode access token & return STUDENT ID (TokenData)
-    @staticmethod
-    async def validate_access_token(token: str) -> AccessTokenData:
+    
+    async def validate_access_token(self, token: str) -> AccessTokenData:
        
         try:
             logger.debug("Validating access token")
@@ -83,7 +84,7 @@ class AuthService():
             jti = payload.get("jti")
             
             # check whether jti is redis blacklisted 
-            if jti and await rdb.get(f"blacklist:{jti}"):
+            if jti and await self.redis.get(f"blacklist:{jti}"):
                 logger.warning("Access token revoked. Validation failed")
                 raise jwt.InvalidTokenError("Token revoked")
             
@@ -113,20 +114,21 @@ class AuthService():
     @staticmethod
     def create_reset_token(
         email: EmailStr,
-        student_service: StudentService,
         session: Session
         ) -> str:
         
-        # check whether email belongs to registered student
-        student_in_db = student_service.get_student_by_email(email)
+        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
+        normalized_email = normalize_email(email)
+        # check whether email belongs to registered student => student_service.get_student_by_email(email) is not used to avoid circular import errors 
+        student_in_db = session.exec(
+            select(StudentInDB).where(StudentInDB.email == normalized_email)
+        ).first()
         
         # if not, log the error internally and exit
         if not student_in_db:
             logger.warning("Email not found. Cannot create reset token")
             raise ValueError("Email not registered") # only within the app => intercepted by request_password_reset with 'pass' => no info to the client
         
-        # if exists, normalize it to avoid errors => e.g. abc@xyz.COM vs. abc@xyz.com
-        normalized_email = normalize_email(email)
         
         # with block => auto-commit + auto-rollback
         with session.begin(): 
@@ -296,7 +298,7 @@ class AuthService():
             
             logger.info(f"Tokens refreshed successfully for student {student_id}")
             
-            return AccessRefreshToken(access_token=new_access_token, token_type="bearer", refresh_token=new_refresh_token)
+            return AccessRefreshToken(access_token=new_access_token, token_type="Bearer", refresh_token=new_refresh_token)
         
         except (InvalidRefreshTokenError, DatabaseError):
             raise 
