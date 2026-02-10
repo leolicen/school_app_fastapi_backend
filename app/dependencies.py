@@ -1,18 +1,21 @@
 import uuid
 from fastapi.security import OAuth2PasswordBearer
+import jwt
+import logging
+from typing import Annotated
+from fastapi import Depends
+from jwt import InvalidTokenError
+
 from app.services.auth import AuthService
 from .core.database import SessionDep
 from .core.settings import settings
 from .services.student import StudentService 
 from .models.student import StudentPublic
-from typing import Annotated
-from fastapi import Depends
-import jwt
-from jwt import InvalidTokenError
 from .services.course import CourseService
 from .services.internship import InternshipService
-import logging
 from .exceptions.exceptions import InactiveStudentError
+from .services.auth import AuthService
+from .core.redis import RedisDep
 
 
 logger = logging.getLogger(__name__)
@@ -22,10 +25,19 @@ logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
+# -- AUTH SERVICE DEPENDENCY --
+def get_auth_service(redis_client: RedisDep):
+    return AuthService(redis_client=redis_client)
+
 
 # -- STUDENT SERVICE DEPENDENCY --
-def get_student_service(session: SessionDep):
-    return StudentService(session=session)
+def get_student_service(
+    session: SessionDep, 
+    auth_service: Annotated[AuthService, Depends(get_auth_service)], # auth service injected as dependency 
+    redis_client: RedisDep
+    ):
+    
+    return StudentService(session=session, auth_service=auth_service, redis_client=redis_client) # auth service already available within student service injected in the endpoints
 
 
 # -- COURSE SERVICE DEPENDENCY --
@@ -46,11 +58,12 @@ def get_internship_service(session: SessionDep):
 # => e.g. used in /students/me (all students can read their info, but only active ones can modify them)
 async def get_current_student(
     token: Annotated[str, Depends(oauth2_scheme)], 
-    student_service: StudentService = Depends(get_student_service)
+    student_service: Annotated[StudentService, Depends(get_student_service)],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)]
     ) -> StudentPublic:
     
     # validate token and put retrieved id in TokenData
-    access_token_data = await AuthService.validate_access_token(token)
+    access_token_data = await auth_service.validate_access_token(token)
     # convert id from string to UUID
     student_id = access_token_data.get_uuid()
     

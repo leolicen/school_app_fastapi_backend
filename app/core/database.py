@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import logging
 
 
+
 logger = logging.getLogger(__name__)
 
 # -- create ENGINE --
@@ -32,6 +33,22 @@ def get_session():
 
 # -- creation SESSION DEPENDENCY INSTANCE --
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+# -- LIFESPAN -- to be inserted into FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # codice startup (prima di yield)
+    create_db_and_tables() 
+      
+    yield 
+    
+      
+    # shutdown app code (after yield, optional) for resources cleanup, db closing, etc
+    
+    
+
+
 
 
 # --  DELETE EXPIRED REFRESH TOKENS --
@@ -79,18 +96,7 @@ def activate_agreements(session: Session) -> int:
 
 
 
-# -- LIFESPAN -- to be inserted into FastAPI()
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # codice startup (prima di yield)
-    create_db_and_tables() 
-      
-    yield 
-    
-      
-    # shutdown app code (after yield, optional) for resources cleanup, db closing, etc
-    
-    
+
     
 
 # -- CRON JOB => DELETE EXPIRED REFRESH TOKEN hourly --
