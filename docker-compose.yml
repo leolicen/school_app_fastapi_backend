@@ -1,0 +1,82 @@
+version: '3.9'
+
+
+services:
+  fastapi:
+    build: 
+      context: .
+      dockerfile: Dockerfile 
+    container_name: school_fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=mysql
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env 
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - school-app-network 
+    restart: unless-stopped
+  
+
+  mysql:
+    image: mysql:8.0
+    container_name: school_mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - school-app-network
+    restart: unless-stopped
+  
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: school_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - school-app-network
+    restart: unless-stopped
+  
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: school_redis 
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - school-app-network
+    restart: unless-stopped 
+
+
+networks:
+  school-app-network:
+    driver: bridge
