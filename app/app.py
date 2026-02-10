@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import resend
+
 from .core.settings import settings
 from .core.rate_limiting import setup_rate_limiter
 from .core.logger import setup_logging
@@ -8,11 +9,12 @@ from .routers.auth import router as authRouter
 from .routers.course import router as courseRouter
 from .routers.internship import router as internshipRouter
 from .routers.student import router as studentRouter
+from .core.database import lifespan
 
 
 
 # istanza della classe FastAPI
-app = FastAPI(title="ITS App API",) #,lifespan=lifespan
+app = FastAPI(title=settings.app_name, lifespan=lifespan) #,lifespan=lifespan
 
 
 # configurazione globale RESEND una volta sola all'avvio dell'app
