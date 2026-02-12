@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
+import sqlalchemy
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, field_validator
 import uuid
-from sqlalchemy import Column, DateTime, func
+from sqlalchemy import Column, DateTime, ForeignKey, func
 from ..utils.validators import strong_password_validator, normalize_email
 
 if TYPE_CHECKING: # only static type check, does not work at runtime (errors with imports of code like services)
@@ -33,10 +34,16 @@ class StudentBase(SQLModel):
 # -- STUDENT IN DB -- (table)
 # with id (automatically generated) and hashed password
 class StudentInDB(StudentBase, table=True):
-    student_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    student_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True) # default_factory is a Python-side mechanism (creates a UUID within the code before sending it to the db)
     email: str = Field(unique=True, index=True)
     hashed_password: str = Field(max_length=255, index=True)
-    course_id: uuid.UUID = Field(foreign_key="courseindb.course_id")
+    course_id: uuid.UUID = Field(
+        sa_column=Column( # with sa_column foreign key must be specified within Column()
+            sqlalchemy.types.String(36),
+            ForeignKey("courseindb.course_id"),
+            nullable=False
+            )
+        )
     
     student_updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())) # automatically adds time when model is updated
     pwd_changed_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))

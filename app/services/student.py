@@ -3,6 +3,7 @@ from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
 import logging
+from pymysql import IntegrityError
 import redis.asyncio as redis
 from pydantic import EmailStr
 from sqlalchemy import delete, update
@@ -139,18 +140,37 @@ class StudentService():
             hashed_password=hashed_password
         )
         
+        logger.debug(f"STUDENT ID before insert in db: {new_student.student_id}")
+        
         try:
             # add new student to DB
             self._db.add(new_student)
             self._db.commit()
             self._db.refresh(new_student)
             
+            logger.debug(f"STUDENT ID after add and model refresh: {new_student.student_id}")
+            
+            
             # convert StudentInDB model into StudentPublic (user response model without hashed_password)
             return StudentPublic.model_validate(new_student)
+        
+        except IntegrityError as e:
+            self._db.rollback()
             
+            logger.error(f"Integrity error during student registration: {e}", exc_info=True)
+            
+            error_msg = str(e.orig).lower() if hasattr(e, 'orig') else str(e).lower()
+            
+            if "duplicate entry" in error_msg and "email" in error_msg:
+                raise DuplicateEmailError()
+            else:
+                raise DatabaseError("Unable to register student due to data conflict")
+                
+                
         except Exception as e:
             self._db.rollback()
-            raise DatabaseError(f"Failed to register student: {str(e)}")
+            logger.error(f"Integrity error during student registration: {e}", exc_info=True)
+            raise DatabaseError(f"Failed to register student")
         
    
                   

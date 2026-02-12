@@ -23,8 +23,8 @@ class InternshipAgreementBase(SQLModel):
 
 class InternshipAgreementInDB(InternshipAgreementBase, table=True):
     agreement_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    student_id: int = Field(foreign_key="studentindb.student_id", index=True)
-    company_id: int = Field(foreign_key="companyindb.company_id")
+    student_id: uuid.UUID = Field(foreign_key="studentindb.student_id", index=True)
+    company_id: uuid.UUID = Field(foreign_key="companyindb.company_id")
     # date & time for log/audit
     created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
     
