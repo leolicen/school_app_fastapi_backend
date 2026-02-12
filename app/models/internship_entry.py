@@ -47,8 +47,8 @@ class InternshipEntryInDB(InternshipEntryBase, table=True):
    
     __table_args__ = (
     UniqueConstraint("agreement_id", "start_time", "end_time", "entry_date"), # blocca duplicati perfetti
-    CheckConstraint("entry_date <= CURRENT_DATE", name="check_date_le_today"), # SQL check (ripete il pydantic check)
-    CheckConstraint("entry_date >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)", name="check_date_ge_7days") # SQL check (ripete il pydantic check)
+    # CheckConstraint("entry_date <= CURRENT_DATE", name="check_date_le_today"),  SQL check (ripete il pydantic check)
+    # CheckConstraint("entry_date >= DATE_SUB(CURRENT_DATE, INTERVAL 7 DAY)", name="check_date_ge_7days")  SQL check (ripete il pydantic check)
 )
 
     
