@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
-import sqlalchemy
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, field_validator
 import uuid
 from sqlalchemy import Column, DateTime, ForeignKey, func
+
 from ..utils.validators import strong_password_validator, normalize_email
+from .guid import GUID
 
 if TYPE_CHECKING: # only static type check, does not work at runtime (errors with imports of code like services)
     from .course import CourseInDB
@@ -39,7 +40,8 @@ class StudentInDB(StudentBase, table=True):
     hashed_password: str = Field(max_length=255, index=True)
     course_id: uuid.UUID = Field(
         sa_column=Column( # with sa_column foreign key must be specified within Column()
-            sqlalchemy.types.String(36),
+            "course_id",
+            GUID(),
             ForeignKey("courseindb.course_id"),
             nullable=False
             )
