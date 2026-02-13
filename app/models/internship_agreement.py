@@ -6,6 +6,8 @@ from sqlalchemy import DateTime, UniqueConstraint, func
 import uuid
 from sqlalchemy import Column
 
+from .guid import GUID
+
 
 if TYPE_CHECKING:
     from .student import StudentInDB
@@ -22,7 +24,14 @@ class InternshipAgreementBase(SQLModel):
 
 
 class InternshipAgreementInDB(InternshipAgreementBase, table=True):
-    agreement_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    agreement_id: uuid.UUID = Field(
+        sa_column=Column(
+            "agreement_id",
+            GUID(), # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
+            primary_key=True,
+            default=uuid.uuid4 # just in case the record was created Python-side
+        )
+        )
     student_id: uuid.UUID = Field(foreign_key="studentindb.student_id", index=True)
     company_id: uuid.UUID = Field(foreign_key="companyindb.company_id")
     # date & time for log/audit

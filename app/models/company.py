@@ -23,8 +23,7 @@ class CompanyInDB(SQLModel, table=True):
             "company_id",
             GUID(), # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
             primary_key=True,
-            default=uuid.uuid4, # just in case the record was created Python-side
-            server_default=text("(REPLACE(UUID(), '-', ''))") # automatically creates UUID through SQL function UUID() removing '-' (SQL code)
+            default=uuid.uuid4 # just in case the record was created Python-side
         )
     ) 
     name: str = Field(max_length=50, unique=True, index=True)

@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING, List, Optional
-import sqlalchemy
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime, timezone
 import uuid
-from sqlalchemy import Boolean, Column, DateTime, func, text
+from sqlalchemy import Boolean, Column, DateTime, text
+
+from .guid import GUID
 
 if TYPE_CHECKING:
     from .student import StudentInDB
@@ -32,11 +33,12 @@ class CourseBase(SQLModel):
 # -- COURSE IN DB --
 class CourseInDB(CourseBase, table=True):
     # UUID for models id to guarantee more security (unique and unpredictable id, that does not give info on the app)
-    course_id: uuid.UUID = Field(default_factory=uuid.uuid4, sa_column=Column(
+    course_id: uuid.UUID = Field(
+        sa_column=Column(
             "course_id",
-            sqlalchemy.types.String(36),  # UUID come stringa in MySQL
+            GUID(), # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
             primary_key=True,
-            default=lambda: str(uuid.uuid4())
+            default=uuid.uuid4 # just in case the record was created Python-side
         )
     ) 
     # Field(index=True) tells SQLModel that it should create a SQL index for this column
