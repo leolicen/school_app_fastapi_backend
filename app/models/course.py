@@ -24,8 +24,8 @@ class CourseBase(SQLModel):
         default=True,
         sa_column=Column(
             Boolean,
-            server_default=text("1"),
-            nullable=False
+            nullable=False,
+            server_default=text("1")
         )
         )
 

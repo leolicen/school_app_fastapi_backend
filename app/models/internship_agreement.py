@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Relationship, SQLModel, Field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
-from sqlalchemy import DateTime, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint, func, text
 import uuid
 from sqlalchemy import Column
 
@@ -19,7 +19,15 @@ class InternshipAgreementBase(SQLModel):
     total_hours: int = Field(gt=0)
     attended_hours: Optional[Decimal] = Field(default=None, max_digits=5, decimal_places=2)
     start_date: date 
-    is_active: bool = Field(default=False) # False because an agreement is created before its start_date 
+    is_active: bool = Field(
+        default=False, # Python-side 
+        sa_column=Column(
+            "is_active",
+            Boolean,
+            nullable=False,
+            server_default=text("0") # MySql uses tinyint(1) for Boolean 
+        )
+        ) # False because an agreement is created before its start_date 
     # and is_active is checked by some endpoints(entry creation and deletion) in order to allow students to modify data
 
 
@@ -32,10 +40,32 @@ class InternshipAgreementInDB(InternshipAgreementBase, table=True):
             default=uuid.uuid4 # just in case the record was created Python-side
         )
         )
-    student_id: uuid.UUID = Field(foreign_key="studentindb.student_id", index=True)
-    company_id: uuid.UUID = Field(foreign_key="companyindb.company_id")
+    student_id: uuid.UUID = Field(
+        sa_column=Column(
+            "student_id",
+            GUID(),
+            ForeignKey("studentindb.student_id"),
+            index=True,
+            nullable=False
+        )
+        )
+    company_id: uuid.UUID = Field(
+        sa_column=Column(
+            "company_id",
+            GUID(),
+            ForeignKey("companyindb.company_id"),
+            nullable=False
+        )
+        )
     # date & time for log/audit
-    created_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
+    created_at: Optional[datetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            server_default=text("CURRENT_TIMESTAMP"),
+            nullable=False
+        )
+        ) 
     
     
     # attributo speciale di SQLAlchemy (declarative class attribute) per definire configurazioni avanzate della tabella
