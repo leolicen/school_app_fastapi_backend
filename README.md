@@ -1,6 +1,6 @@
 
 # School-app Fastapi Backend
-
+---
 > Simple REST API backend for a post-diploma technical course app with internship management
 
 English | [Italian](README.it.md)
@@ -30,20 +30,15 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
 - **JWT Authentication** => login, authorization and logout with:
     - *Access Token* (creation, validation and redis blacklisting logic)
     - *Refresh Token* (creation, validation, rotation and cron job to delete expired ones)
+
 - **CRUD operations**:
     - Student => register new student, read student's info, update student's info, delete student's account
     \+ change password (within the app) and reset password by email (from outside the app)
     - Internship agreements => read student agreement/s
     - Intership entries (shifts) =>  create new entries, read entries, delete entries
     - Course => read student's course info
-- **Data Models** with SQLModel and Pydantic:
-    - Auth 
-    - Company
-    - Course
-    - Internship Agreement
-    - Internship Entry
-    - Password
-    - Student
+
+- **Data Models** with SQLModel and Pydantic
 - **Error Handling** with custom errors and handlers
 - **Testing** with Pytest
 - **Auto-documentation** with FastApi /docs & /redoc
