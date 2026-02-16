@@ -27,22 +27,54 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
 
 ## Features
 
-- **JWT Authentication** => login, authorization and logout with:
+- 🔐 **JWT Authentication** => login, authorization and logout with:
     - *Access Token* (creation, validation and redis blacklisting logic)
     - *Refresh Token* (creation, validation, rotation and cron job to delete expired ones)
 
-- **CRUD operations**:
+- 🔧 **CRUD operations**:
     - Student => register new student, read student's info, update student's info, delete student's account
     \+ change password (within the app) and reset password by email (from outside the app)
     - Internship agreements => read student agreement/s
     - Intership entries (shifts) =>  create new entries, read entries, delete entries
     - Course => read student's course info
 
-- **Data Models** with SQLModel and Pydantic
-- **Error Handling** with custom errors and handlers
-- **Testing** with Pytest
-- **Auto-documentation** with FastApi /docs & /redoc
-- **Docker Compose** => 4-containers stack with FastAPI app + MySQL + phpmyadmin + redis
+- 🏢 **Data Models** with SQLModel and Pydantic
+- 🛡️ **Error Handling** with custom errors and handlers
+- 🧪 **Testing** with Pytest
+- 📚 **Auto-documentation** with FastApi /docs & /redoc
+- 🐳 **Docker Compose** => 4-containers stack with FastAPI app + MySQL + phpmyadmin + redis
+
+## Quick Start
+
+### 1. Clone & environment
+
+Clone the repository:
+
+```
+`git clone https://github.com/leolicen/school_app_fastapi_backend.git`
+```
+
+Open project folder:
+
+```
+`cd school-app-fastapi-backend`
+```
+
+Rename `.env.example` to `.env`:
+
+```
+`cp .env.example .env`
+```
+
+Edit `.env` file by replacing comments next to variables names with your custom values:
+
+![env file example 1](/assets/screenshots/pwd1.png)
+Cancel '# set a secure password'.
+
+![env file example 2](/assets/screenshots/pwd2.png)
+Insert the password you want your database to have.
+
+
 
 
 
