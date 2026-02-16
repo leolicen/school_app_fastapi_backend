@@ -68,6 +68,7 @@ cp .env.example .env
 
 Edit `.env` file by replacing comments next to variables names with your custom values:
 
+*Cancel '# set a secure password' line.*
 ```python
 # Database MySQL
 DB_USER=root
@@ -76,8 +77,8 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=myapp_db
 ```
-Cancel '# set a secure password' line.
 
+*Set the password you want your database to have.*
 ```python
 # Database MySQL
 DB_USER=root
@@ -86,7 +87,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=myapp_db
 ```
-Set the password you want your database to have.
+
 
 
 
