@@ -23,7 +23,7 @@ part of a post-diploma IT course. In the future it will be connected to a Flutte
 one I actually used.
 
 The repository is, obviously, free to be cloned and used by anyone who might want to check it out. It is intended to work only
-locally by running a 4-containers docker stack, unless otherwise specified within the code itself. 
+locally by running a 4-containers Docker stack, unless otherwise specified within the code itself. 
 
 ## Features
 
@@ -32,8 +32,8 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
     - *Refresh Token* (creation, validation, rotation and cron job to delete expired ones)
 
 - 🔧 **CRUD operations**:
-    - Student => register new student, read student's info, update student's info, delete student's account
-    \+ change password (within the app) and reset password by email (from outside the app)
+    - Student => register new student, read student's info, update student's info, delete student's account (soft & hard)
+    \+ change password (by authenticated student) and reset password by email (by unauthenticated student)
     - Internship agreements => read student agreement/s
     - Intership entries (shifts) =>  create new entries, read entries, delete entries
     - Course => read student's course info
@@ -42,7 +42,7 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
 - 🛡️ **Error Handling** with custom errors and handlers
 - 🧪 **Testing** with Pytest
 - 📚 **Auto-documentation** with FastApi /docs & /redoc
-- 🐳 **Docker Compose** => 4-containers stack with FastAPI app + MySQL + phpmyadmin + redis
+- 🐳 **Docker Compose** => 4-containers Docker stack (FastAPI app + MySQL + phpmyadmin + redis)
 
 ## Quick Start
 
@@ -106,9 +106,9 @@ docker-compose up -d
 
 ### 3. Access application
 
-- API Docs: (http://localhost:8000/docs) or (http://localhost:8000/redoc)
-- phpMyAdmin: (http://localhost:8080) (use your MySql credentials)
-- Redis: (http://localhost:6379)
+- **API Docs**: http://localhost:8000/docs or http://localhost:8000/redoc
+- **phpMyAdmin**: http://localhost:8080 (use your MySql credentials to login)
+- **Redis**: http://localhost:6379
 
 
 
