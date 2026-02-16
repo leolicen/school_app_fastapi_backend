@@ -46,6 +46,12 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
 
 ## Quick Start
 
+### Prerequisites
+
+- Docker 20.10+ with Docker Compose plugin:
+    - **Windows/Mac**: Docker Desktop
+    - **Linux**: 'docker' + 'docker compose' packages
+
 ### 1. Clone & environment set-up
 
 Clone the repository:
@@ -66,9 +72,9 @@ Rename `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Edit `.env` file by replacing comments next to variables names with your custom values:
+Edit `.env` file by replacing comments next to variables with your custom values:
 
-*Cancel '# set a secure password' line.*
+*Cancel '# set a secure password' comment.*
 ```python
 # Database MySQL
 DB_USER=root
@@ -87,6 +93,25 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=myapp_db
 ```
+
+Do the same for all commented variables. You can, of course, modify existing values as well (e.g. DB_NAME).
+
+### 2. Launch docker containers
+
+Launch the full stack from the project's root folder:
+
+```
+docker-compose up -d
+```
+
+### 3. Access application
+
+- API Docs: (http://localhost:8000/docs) or (http://localhost:8000/redoc)
+- phpMyAdmin: (http://localhost:8080) (use your MySql credentials)
+- Redis: (http://localhost:6379)
+
+
+
 
 
 
