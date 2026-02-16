@@ -2,9 +2,9 @@
 # School-app Fastapi Backend
 
 ---
-#### Simple REST API backend for a post-diploma technical course app with internship management
+#### Semplice backend di API REST per l'applicazione di un corso post diploma con gestione dei tirocini
 
-###### English | [Italian(README.it.md)]
+###### Italian | [English(README.md)]
 
 ![Static Badge](https://img.shields.io/badge/license-MIT-brightgreen)
 
@@ -23,7 +23,5 @@
 ![Static Badge](https://img.shields.io/badge/SQLModel-%237e56c2)
 
 ![Static Badge](https://img.shields.io/badge/Docker-%232496ED?logo=docker&logoColor=white)
-
-
 
 
