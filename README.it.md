@@ -18,9 +18,10 @@ Italian | [English](README.md)
 ## Panoramica
 
 Questa applicazione nasce come un progetto personale col principale obiettivo di imparare le logiche di funzionamento di un'applicazione
-backend, oltre che per avere un progetto completo da allegare al mio CV. Con questo codice ho cercato di emulare la logica di una app
-che ho usato per tener traccia di un tirocinio svolto nell'ambito di un corso IT post diploma. In futuro è mia intenzione 
-collegarla a un'applicazione Flutter che, a sua volta, cerca di replicare l'interfaccia grafica della app già citata
+backend, oltre che per avere un progetto completo che possa avvicinarsi agli standard del mondo IT. 
+Con questo codice ho cercato di emulare la logica di una app che ho usato per tener traccia di un tirocinio svolto nell'ambito di 
+un corso IT post diploma. In futuro è mia intenzione collegarla a un'applicazione Flutter che, a sua volta, cerca di replicarne 
+l'interfaccia grafica.
 
 Questa repository è, chiaramente, clonabile e utilizzabile da chiunque sia interessato a provarla. L'applicazione è stata pensata per essere
 eseguita in locale attraverso uno stack di 4 container Docker, ma può essere ovviamente modificata a piacimento.
@@ -56,23 +57,23 @@ eseguita in locale attraverso uno stack di 4 container Docker, ma può essere ov
 
 Clona la repository:
 
-```
+```bash
 git clone https://github.com/leolicen/school_app_fastapi_backend.git
 ```
 
 Apri la cartella del progetto:
 
-```
+```bash
 cd school-app-fastapi-backend
 ```
 
 Rinomina il file `.env.example` in `.env`:
 
-```
+```bash
 cp .env.example .env
 ```
 
-Modifica il file `.env` sostituendo i commenti accanto alle variabili con i tuoi valori personalizzati:
+Modifica il file `.env` sostituendo i commenti accanto alle variabili con valori personalizzati:
 
 *Cancella il commento '# set a secure password'.*
 ```python
@@ -100,7 +101,7 @@ Fai lo stesso per tutte le variabili commentate. Naturalmente, puoi modificare a
 
 Lancia lo stack completo dalla cartella root del progetto:
 
-```
+```bash
 docker-compose up -d
 ```
 
