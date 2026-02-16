@@ -46,33 +46,63 @@ locally by running a 4-containers docker stack, unless otherwise specified withi
 
 ## Quick Start
 
-### 1. Clone & environment
+### 1. Clone & environment set-up
 
 Clone the repository:
 
 ```
-`git clone https://github.com/leolicen/school_app_fastapi_backend.git`
+git clone https://github.com/leolicen/school_app_fastapi_backend.git
 ```
 
 Open project folder:
 
 ```
-`cd school-app-fastapi-backend`
+cd school-app-fastapi-backend
 ```
 
 Rename `.env.example` to `.env`:
 
 ```
-`cp .env.example .env`
+cp .env.example .env
 ```
 
 Edit `.env` file by replacing comments next to variables names with your custom values:
 
-![env file example 1](/assets/screenshots/pwd1.png)
+```python
+# Database MySQL
+DB_USER=root
+DB_PASSWORD= # set a secure password
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=myapp_db
+```
+Cancel '# set a secure password' line.
+
+```python
+# Database MySQL
+DB_USER=root
+DB_PASSWORD=yourSecurePassword
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=myapp_db
+```
+Set the password you want your database to have.
+
+
+
+
+
+
+
+
+
+<!-- 
+![env file example 1](/assets/screenshots/pwd1.png)  
 Cancel '# set a secure password'.
 
-![env file example 2](/assets/screenshots/pwd2.png)
-Insert the password you want your database to have.
+![env file example 2](/assets/screenshots/pwd2.png)  
+Insert the password you want your database to have. -->
+
 
 
 
