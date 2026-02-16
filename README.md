@@ -122,31 +122,31 @@ docker-compose up -d
 | /auth/password/reset-request | POST | Request pwd reset | No |
 | /auth/password/reset-confirm | POST | Confirm pwd reset | No |
 | /auth/refresh | POST | Refresh access & refresh tokens | Yes |
-| /auth/logout | POST | Logout | Yes |
+| /auth/logout | POST | Logout JWT | Yes |
 
 ### 2. Course Router
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /courses | GET | Read student course info | Yes | A,I |
+| /courses | GET | Read student course info | Yes | Active, Inactive |
 
 ### 3. Internship Router
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /internship-agreements | GET | Read student agreement/s info | Yes | A,I |
-| /internship-agreements/{agreement_id}/entries | GET | Read agreement entries | Yes | A,I |
-| /internship-agreements/{agreement_id}/entries | POST | Create new internship entry | Yes | A |
-| /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Delete internship entry | Yes | A |
+| /internship-agreements | GET | Read student agreement/s info | Yes | Active, Inactive |
+| /internship-agreements/{agreement_id}/entries | GET | Read agreement entries | Yes | Active, Inactive |
+| /internship-agreements/{agreement_id}/entries | POST | Create new internship entry | Yes | Active |
+| /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Delete internship entry | Yes | Active |
 
 ### 4. Student Router
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /students/me | GET | Read student info | Yes | A,I |
-| /students/me | PATCH | Update student info | Yes | A | 
-| /students/me | DELETE | Delete student account | Yes | A,I |
-| /students/change-password | POST | Yes | A,I |
+| /students/me | GET | Read student info | Yes | Active, Inactive |
+| /students/me | PATCH | Update student info | Yes | Active | 
+| /students/me | DELETE | Delete student account | Yes | Active, Inactive |
+| /students/change-password | Change student pwd | POST | Yes | Active, Inactive |
 
 
 

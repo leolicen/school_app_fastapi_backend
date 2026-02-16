@@ -111,6 +111,44 @@ docker-compose up -d
 - **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySql per effettuare il login)
 - **Redis**: http://localhost:6379
 
+## Endpoint API
+
+### 1. Router Auth
+
+| Endpoint | Metodo | Descrizione | Auth | 
+| -------- | ------ | ----------- | ---- | 
+| /auth/login | POST | Login JWT | No | 
+| /auth/register | POST | Registrazione studente | No |
+| /auth/password/reset-request | POST | Richiesta reset pwd | No |
+| /auth/password/reset-confirm | POST | Conferma reset pwd | No |
+| /auth/refresh | POST | Refresh di access & refresh token | Sì |
+| /auth/logout | POST | Logout JWT | Sì |
+
+### 2. Router Course
+
+| Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
+| -------- | ------ | ----------- | ---- | ----------------------- |
+| /courses | GET | Leggi info sul corso dello studente | Sì | Attivo, Inattivo |
+
+### 3. Router Internship
+
+| Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
+| -------- | ------ | ----------- | ---- | ----------------------- |
+| /internship-agreements | GET | Leggi info accordo/i di tirocinio | Sì | Attivo, Inattivo |
+| /internship-agreements/{agreement_id}/entries | GET | Leggi info turni di tirocinio | Sì | Attivo, Inattivo |
+| /internship-agreements/{agreement_id}/entries | POST | Crea nuovo turno di tirocinio | Sì | Attivo |
+| /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Elimina turno tirocinio | Sì | Attivo |
+
+### 4. Router Student
+
+| Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
+| -------- | ------ | ----------- | ---- | ----------------------- |
+| /students/me | GET | Leggi info studente | Sì | Attivo, Inattivo |
+| /students/me | PATCH | Aggiorna info studente | Sì | Attivo | 
+| /students/me | DELETE | Elimina account studente | Sì | Attivo, Inattivo |
+| /students/change-password | Cambia pwd studente | POST | Sì | Attivo, Inattivo |
+
+
 
 
 
