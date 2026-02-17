@@ -21,18 +21,18 @@ Personal project to learn backend development, replicating the logic of a real i
 a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
 one I actually used.
 
-#### **Main goal**  
+#### Main goal  
 Students manage internships as part of a technical post-diploma course.
 They can:
 - read info about their course
 - register/visualize/delete shifts
 - manage personal data
 
-#### **How it works**
+#### How it works
 - **Static data** [companies, courses, internship agreements] => manually created in DB (through phpMyAdmin)
 - **Dynamic data** [students, internship entries (shifts), tokens] => handled by API endpoints
 
-#### **Local-only**  
+#### Local-only  
 4-containers Docker stack (or uv run with separate MySQL and Redis)
 
 ## Features
