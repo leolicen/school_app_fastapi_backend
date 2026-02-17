@@ -17,13 +17,23 @@ English | [Italian](README.it.md)
 
 ## Overview
 
-This app was born as a personal project with the aim of learning how a backend might work whilst having a code that could be close to 
-IT world standards. This code is meant to mimic the logic of a real app I used to track a internship I did as
-part of a post-diploma IT course. In the future it will be connected to a Flutter app that, again, tries to replicate the UI of the
+Personal project to learn backend development, replicating the logic of a real internship tracking app I used during 
+a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
 one I actually used.
 
-The repository is, obviously, free to be cloned and used by anyone who might want to check it out. It is intended to work only
-locally by running a 4-containers Docker stack, unless otherwise specified within the code itself. 
+**Main goal** 
+Students manage internships as part of a technical post-diploma course.
+They can:
+- read info about their course
+- register/visualize/delete shifts
+- manage personal data
+
+**How it works**
+- **Static data** [companies, courses, internship agreements] => manually created in DB (through phpMyAdmin)
+- **Dynamic data** [students, internship entries (shifts), tokens] => handled by API endpoints
+
+**Local-only**
+4-containers Docker stack (or uv run with separate MySQL and Redis)
 
 ## Features
 
@@ -96,7 +106,18 @@ DB_NAME=myapp_db
 
 Do the same for all commented variables. You can, of course, modify existing values as well (e.g. DB_NAME).
 
-### 2. Launch docker containers
+### 2. Password-reset via email (Optional)
+
+The app makes use of Resend to allow the user to reset their password by email.
+
+If you want to use this feature, first [create an account](https://resend.com/home).
+
+[Add a domain](https://resend.com/domains) you own to be able to send and receive emails. Otherwise, just use Resend test domain (already set
+in `.env`). Please note that the test domain only works with the address used during registration.
+
+Update `.env` file with resend API key and the domain you would like to use.
+
+### 3. Launch docker containers
 
 Launch the full stack from the project's root folder:
 
@@ -104,13 +125,13 @@ Launch the full stack from the project's root folder:
 docker-compose up -d
 ```
 
-### 3. Access application
+### 4. Access application
 
 - **API Docs**: http://localhost:8000/docs or http://localhost:8000/redoc
 - **phpMyAdmin**: http://localhost:8080 (use your MySql credentials to login)
 - **Redis**: http://localhost:6379
 
-## Local Development (No Docker)
+## Local development (No Docker)
 
 ⚠️ **Warning**: the application runs without Docker, but still **requires separate MySQL 
 and Redis** (using '.env' credentials).
@@ -124,6 +145,7 @@ Install project dependencies:
 ```bash
 uv sync
 ```
+### Run the app
 
 Run the app (with hot-reload):
 
