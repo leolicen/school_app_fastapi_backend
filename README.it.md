@@ -111,6 +111,58 @@ docker-compose up -d
 - **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySql per effettuare il login)
 - **Redis**: http://localhost:6379
 
+## Sviluppo locale (No Docker)
+
+⚠️ **Attenzione**: l'applicazione funziona senza Docker, ma **richiede MySQL 
+e Redis attivi** separatamente (credenziali nel file '.env').
+
+### Setup uv 
+
+Installa uv (se necessario): [installazione uv](https://docs.astral.sh/uv/getting-started/installation/).
+
+Aggiungi le dipendenze del progetto:
+
+```bash
+uv sync
+```
+
+Avvia l'applicazione (con hot-reload):
+
+```bash
+uv run python main.py
+```
+
+## Struttura del progetto
+
+```bash
+school-app-fastapi-backend/
+├── app/
+│   ├── core/
+│   ├── exceptions/
+│   ├── models/
+│   ├── routers/
+│   ├── services/
+│   ├── utils/
+│   ├── app.py
+│   └── dependencies.py
+├── test/
+│   ├── conftest.py
+│   ├── integration/
+│   └── unit/
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── .python-version
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── pytest.ini
+├── README.it.md
+├── README.md
+└── uv.lock
+
+```
+
 ## Endpoint API
 
 ### 1. Router Auth
@@ -148,38 +200,6 @@ docker-compose up -d
 | /students/me | DELETE | Elimina account studente | Sì | Attivo, Inattivo |
 | /students/change-password | Cambia pwd studente | POST | Sì | Attivo, Inattivo |
 
-## Struttura del progetto
-
-```bash
-school-app-fastapi-backend/
-├── app/
-│   ├── core/
-│   ├── exceptions/
-│   ├── models/
-│   ├── routers/
-│   ├── services/
-│   ├── utils/
-│   ├── __init__.py
-│   ├── app.py
-│   └── dependencies.py
-├── test/
-│   ├── __init__.py
-│   ├── conftest.py
-│   ├── integration/
-│   └── unit/
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── .python-version
-├── docker-compose.yml
-├── Dockerfile
-├── pyproject.toml
-├── pytest.ini
-├── README.it.md
-├── README.md
-└── uv.lock
-
-```
 
 
 
