@@ -17,14 +17,23 @@ Italian | [English](README.md)
 
 ## Panoramica
 
-Questa applicazione nasce come un progetto personale col principale obiettivo di imparare le logiche di funzionamento di un'applicazione
-backend, oltre che per avere un progetto completo che possa avvicinarsi agli standard del mondo IT. 
-Con questo codice ho cercato di emulare la logica di una app che ho usato per tener traccia di un tirocinio svolto nell'ambito di 
-un corso IT post diploma. In futuro è mia intenzione collegarla a un'applicazione Flutter che, a sua volta, cerca di replicarne 
-l'interfaccia grafica.
+Progetto personale per imparare le logiche di sviluppo backend, replicando il funzionamento di una applicazione usata 
+per tener traccia di un tirocinio svolto durante un corso IT post diploma. In futuro sarà collegata 
+a un'applicazione Flutter che, a sua volta, cerca di replicarne l'interfaccia grafica.
 
-Questa repository è, chiaramente, clonabile e utilizzabile da chiunque sia interessato a provarla. L'applicazione è stata pensata per essere
-eseguita in locale attraverso uno stack di 4 container Docker, ma può essere ovviamente modificata a piacimento.
+**Obiettivo principale** 
+Studenti gestiscono tirocini come parte di un corso tecnico post diploma.
+Azioni possibili:
+- lettura info del corso frequentato
+- registrazione/visualizzazione/eliminazione turni di lavoro
+- gestione dati personali 
+
+**Funzionamento**
+- **Dati statici** [aziende, corsi, accordi di tirocinio] => creati manualmente nel database (con phpMyAdmin)
+- **Dati dinamici** [studenti, turni di lavoro, token] => gestiti da endpoint API
+
+**Sviluppo locale**
+Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a MySQL e Redis)
 
 ## Caratteristiche principali
 
@@ -97,7 +106,18 @@ DB_NAME=myapp_db
 
 Fai lo stesso per tutte le variabili commentate. Naturalmente, puoi modificare anche i valori già impostati (es. DB_NAME).
 
-### 2. Lancia i container 
+### 2. Password-reset tramite email (Facoltativo)
+
+L'applicazione usa Resend per permettere all'utente di resettare la propria password tramite email.
+
+Se vuoi utilizzare questo servizio, [crea un account](https://resend.com/home).
+
+[Aggiungi un dominio](https://resend.com/domains) personale per inviare e ricevere email. Altrimenti, usa l'indirizzo email di test 
+(già impostato in `.env`). N.B. L'indirizzo di test funziona solo con l'email fornita in fase di registrazione.
+
+Aggiorna il file `.env` con l'API key di Resend e il dominio che vuoi utilizzare.
+
+### 3. Lancia i container 
 
 Lancia lo stack completo dalla cartella root del progetto:
 
@@ -105,7 +125,7 @@ Lancia lo stack completo dalla cartella root del progetto:
 docker-compose up -d
 ```
 
-### 3. Accedi all'applicazione
+### 4. Accedi all'applicazione
 
 - **Documentazione API**: http://localhost:8000/docs oppure http://localhost:8000/redoc
 - **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySql per effettuare il login)
@@ -125,6 +145,8 @@ Aggiungi le dipendenze del progetto:
 ```bash
 uv sync
 ```
+
+### Avvia la app
 
 Avvia l'applicazione (con hot-reload):
 
