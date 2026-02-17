@@ -148,6 +148,38 @@ docker-compose up -d
 | /students/me | DELETE | Elimina account studente | Sì | Attivo, Inattivo |
 | /students/change-password | Cambia pwd studente | POST | Sì | Attivo, Inattivo |
 
+## Struttura del progetto
+
+```bash
+school-app-fastapi-backend/
+├── app/
+│   ├── core/
+│   ├── exceptions/
+│   ├── models/
+│   ├── routers/
+│   ├── services/
+│   ├── utils/
+│   ├── __init__.py
+│   ├── app.py
+│   └── dependencies.py
+├── test/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── integration/
+│   └── unit/
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── .python-version
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── pytest.ini
+├── README.it.md
+├── README.md
+└── uv.lock
+
+```
 
 
 
