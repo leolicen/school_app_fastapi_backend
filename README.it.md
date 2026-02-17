@@ -21,18 +21,18 @@ Progetto personale per imparare le logiche di sviluppo backend, replicando il fu
 per tener traccia di un tirocinio svolto durante un corso IT post diploma. In futuro sarà collegata 
 a un'applicazione Flutter che, a sua volta, cerca di replicarne l'interfaccia grafica.
 
-#### **Obiettivo principale**  
+#### Obiettivo principale  
 Studenti gestiscono tirocini come parte di un corso tecnico post diploma.
 Azioni possibili:
 - lettura info del corso frequentato
 - registrazione/visualizzazione/eliminazione turni di lavoro
 - gestione dati personali 
 
-#### **Funzionamento**
+#### Funzionamento
 - **Dati statici** [aziende, corsi, accordi di tirocinio] => creati manualmente nel database (con phpMyAdmin)
 - **Dati dinamici** [studenti, turni di lavoro, token] => gestiti da endpoint API
 
-#### **Sviluppo locale**  
+#### Sviluppo locale 
 Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a MySQL e Redis)
 
 ## Caratteristiche principali
