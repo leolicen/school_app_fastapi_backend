@@ -136,7 +136,7 @@ docker-compose up -d
 ⚠️ **Attenzione**: l'applicazione funziona senza Docker, ma **richiede MySQL 
 e Redis attivi** separatamente (credenziali nel file '.env').
 
-### Setup uv 
+### 1. Setup uv 
 
 Installa uv (se necessario): [installazione uv](https://docs.astral.sh/uv/getting-started/installation/).
 
@@ -146,7 +146,7 @@ Scarica le dipendenze del progetto:
 uv sync
 ```
 
-### Avvia la app
+### 2. Avvia la app
 
 Avvia l'applicazione (con hot-reload):
 
