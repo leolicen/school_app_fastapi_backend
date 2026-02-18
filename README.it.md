@@ -22,7 +22,7 @@ per tener traccia di un tirocinio svolto durante un corso IT post diploma. In fu
 a un'applicazione Flutter che, a sua volta, cerca di replicarne l'interfaccia grafica.
 
 #### Obiettivo principale  
-Studenti gestiscono tirocini come parte di un corso tecnico post diploma.
+Studenti gestiscono tirocini come parte di un corso tecnico post diploma.  
 Azioni possibili:
 - lettura info del corso frequentato
 - registrazione/visualizzazione/eliminazione turni di lavoro
@@ -140,7 +140,7 @@ e Redis attivi** separatamente (credenziali nel file '.env').
 
 Installa uv (se necessario): [installazione uv](https://docs.astral.sh/uv/getting-started/installation/).
 
-Aggiungi le dipendenze del progetto:
+Scarica le dipendenze del progetto:
 
 ```bash
 uv sync

@@ -21,14 +21,14 @@ Personal project to learn backend development, replicating the logic of a real i
 a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
 one I actually used.
 
-#### Main goal  
+#### Main goal
 Students manage internships as part of a technical post-diploma course.
 They can:
 - read info about their course
 - register/visualize/delete shifts
 - manage personal data
 
-#### How it works
+#### How it works
 - **Static data** [companies, courses, internship agreements] => manually created in DB (through phpMyAdmin)
 - **Dynamic data** [students, internship entries (shifts), tokens] => handled by API endpoints
 
@@ -108,7 +108,7 @@ Do the same for all commented variables. You can, of course, modify existing val
 
 ### 2. Password-reset via email (Optional)
 
-The app makes use of Resend to allow the user to reset their password by email.
+The app makes use of Resend to allow users to reset their password by email.
 
 If you want to use this feature, first [create an account](https://resend.com/home).
 
