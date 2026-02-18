@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime, timezone
 import uuid
-from sqlalchemy import Boolean, Column, DateTime, text
+from sqlalchemy import Boolean, Column, DateTime, text, event, DDL
 
 from .guid import GUID
 
@@ -68,3 +68,27 @@ class CoursePublic(CourseBase):
 
 
 
+course_trigger_ddl = DDL(
+    """ 
+    CREATE TRIGGER IF NOT EXISTS before_insert_courseindb
+    BEFORE INSERT ON courseindb FOR EACH ROW
+    BEGIN
+        IF NEW.course_id IS NULL OR NEW.course_id = '' THEN
+            SET NEW.course_id = REPLACE(UUID(), '-', '');
+        END IF;
+    END
+    """
+)
+
+@event.listens_for(CourseInDB.__table__, "after_create")
+def create_course_trigger(target, connection, **kw):
+    
+    print(f"Tabella: {target.name}")  
+    print(f"Dialect: {connection.dialect.name}")
+    
+    if connection.dialect.name == "mysql":
+        connection.execute(course_trigger_ddl)
+    
+    result = connection.execute(text("SHOW TRIGGERS LIKE 'before_insert_courseindb'"))
+    trigger = result.fetchone()
+    print(f"Trigger esiste: {trigger}")
