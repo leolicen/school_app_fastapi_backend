@@ -51,7 +51,7 @@ class InternshipService():
     
     
     # -- GET OWNED AGREEMENT -- retrieve agreement only if owned 
-    def get_owned_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> InternshipAgreementPublic | None:
+    def get_owned_agreement(self, student_id: uuid.UUID, agreement_id: uuid.UUID) -> InternshipAgreementInDB | None:
         
         # retrieve agreement only if it belongs to the student
         agreement = self._db.exec(
@@ -61,7 +61,7 @@ class InternshipService():
             )
         ).first()
 
-        return InternshipAgreementPublic.model_validate(agreement) if agreement else None
+        return agreement 
   
     
   
@@ -84,7 +84,7 @@ class InternshipService():
         # retrieve specific agreement entries in ascending order (from oldest to newest)
         get_entries_stmt = select(InternshipEntryInDB).where(
             InternshipEntryInDB.agreement_id == agreement_id
-        ).order_by(InternshipEntryInDB.date.asc())
+        ).order_by(InternshipEntryInDB.entry_date.asc())
         
         entries_in_db: Sequence[InternshipEntryInDB] = self._db.exec(get_entries_stmt).all()
         
