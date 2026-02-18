@@ -1,16 +1,18 @@
 from typing import Annotated
 from fastapi import Depends, FastAPI
-from sqlalchemy import func, update
-from sqlmodel import create_engine, SQLModel, Session, delete
-from .settings import settings
-from contextlib import asynccontextmanager 
-from ..models.auth import RefreshTokenInDB
-from datetime import datetime, timezone, timedelta
 from fastapi_utilities import repeat_every
+from sqlalchemy import func, update
+from sqlalchemy.exc import SQLAlchemyError
+from sqlmodel import create_engine, SQLModel, Session, delete
+import logging
+from contextlib import asynccontextmanager 
+from datetime import datetime, timezone, timedelta
+
+from .settings import settings
+from ..models.auth import RefreshTokenInDB
 from ..models.student import StudentInDB
 from ..models.internship_agreement import InternshipAgreementInDB
-from sqlalchemy.exc import SQLAlchemyError
-import logging
+
 
 
 

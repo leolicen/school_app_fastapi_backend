@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
-import sqlalchemy
 from sqlmodel import Relationship, SQLModel, Field
 import uuid
-from sqlalchemy import Column, DateTime, func, text
+from sqlalchemy import Column, DateTime, text, event, DDL
 
 from .guid import GUID
 
@@ -43,3 +42,27 @@ class CompanyInDB(SQLModel, table=True):
   
     # RELATIONSHIPS
     internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="company")
+    
+    
+    
+company_trigger_ddl = DDL(
+    """ 
+    CREATE TRIGGER IF NOT EXISTS before_insert_companyindb
+    BEFORE INSERT ON companyindb FOR EACH ROW
+    BEGIN
+        IF NEW.company_id IS NULL OR NEW.company_id = '' THEN
+            SET NEW.company_id = REPLACE(UUID(), '-', '');
+        END IF;
+    END
+    """
+)
+
+@event.listens_for(CompanyInDB.__table__, "after_create")
+def create_company_trigger(target, connection, **kw):
+    
+    print(f"Tabella: {target.name}")  
+    print(f"Dialect: {connection.dialect.name}")
+    
+    if connection.dialect.name == "mysql":
+        connection.execute(company_trigger_ddl)
+    

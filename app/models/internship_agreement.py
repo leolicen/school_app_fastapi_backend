@@ -2,9 +2,8 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from sqlalchemy import Boolean, DateTime, ForeignKey, UniqueConstraint, func, text
+from sqlalchemy import Boolean, DateTime, Column, ForeignKey, UniqueConstraint, text, event, DDL
 import uuid
-from sqlalchemy import Column
 
 from .guid import GUID
 
@@ -84,3 +83,30 @@ class InternshipAgreementInDB(InternshipAgreementBase, table=True):
 class InternshipAgreementPublic(InternshipAgreementBase):
     agreement_id: uuid.UUID
     company_name: str 
+    
+    
+    
+
+agreement_trigger_ddl = DDL(
+    """ 
+    CREATE TRIGGER IF NOT EXISTS before_insert_internshipagreementindb
+    BEFORE INSERT ON internshipagreementindb FOR EACH ROW
+    BEGIN
+        IF NEW.agreement_id IS NULL OR NEW.agreement_id = '' THEN
+            SET NEW.agreement_id = REPLACE(UUID(), '-', '');
+        END IF;
+    END
+    """
+)
+
+@event.listens_for(InternshipAgreementInDB.__table__, "after_create")
+def create_agreement_trigger(target, connection, **kw):
+    
+    print(f"Tabella: {target.name}")  
+    print(f"Dialect: {connection.dialect.name}")
+    
+    if connection.dialect.name == "mysql":
+        connection.execute(agreement_trigger_ddl)
+    
+    
+    

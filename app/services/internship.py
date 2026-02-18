@@ -5,10 +5,13 @@ from typing import Sequence
 import uuid
 from sqlalchemy import and_, exists
 from sqlmodel import Session, select
+import logging
+
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
 from ..models.student import StudentPublic
 from ..models.internship_entry import InternshipEntryInDB, InternshipEntryPublic, InternshipEntryCreate
-import logging
+from ..models.company import CompanyInDB
+
 from ..exceptions.exceptions import (AgreementForbiddenError, InternshipCompletedError, 
                                      InternshipHoursExceededError, InternshipOverlappingEntryError, 
                                      InternshipEntryNotDeletableError)
@@ -30,15 +33,19 @@ class InternshipService():
         # retrieve agreement/s connected to student id (active & non-active) + company name for each agreement
         get_agreements_stmt = select(
             InternshipAgreementInDB,
-            InternshipAgreementInDB.company.name
-            ).where(
+            CompanyInDB.name
+            ).join(
+                CompanyInDB, InternshipAgreementInDB.company_id == CompanyInDB.company_id
+                ).where(
             InternshipAgreementInDB.student_id == current_student.student_id
         )
         
         # each tuple = (InternshipAgreementInDB, company_name)
         agreements_tuples: Sequence[Tuple[InternshipAgreementInDB, str]] = self._db.exec(get_agreements_stmt).all()
         
-        return [InternshipAgreementPublic.model_validate(agr, update={"company_name": name}, from_attributes=True) for agr, name in agreements_tuples]
+        return [InternshipAgreementPublic.model_validate(
+            agr, update={"company_name": name}, from_attributes=True
+            ) for agr, name in agreements_tuples]
             
     
     
