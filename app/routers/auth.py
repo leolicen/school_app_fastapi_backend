@@ -1,17 +1,18 @@
 import uuid
-from fastapi import APIRouter, Cookie, Depends, BackgroundTasks, Request, status
+import logging
+from fastapi import APIRouter, Depends, BackgroundTasks, Request, status
 from typing import Annotated
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlmodel import Session
+from ..core.database import SessionDep
 from ..models.auth import AccessRefreshToken
 from ..models.password import ResetPasswordRequest, ResetPwdData
-from ..dependencies import get_student_service, get_current_student_id_only
+from ..dependencies import get_student_service, get_auth_service, get_current_student_id_only
 from ..services.student import StudentService
 from ..models.student import StudentCreate
 from ..core.rate_limiting import limiter
-from ..core.database import SessionDep
 from ..services.auth import AuthService
-import logging
+from ..models.auth import RefreshRequest
+
 from ..exceptions.exceptions import MissingRefreshTokenError
 
 
@@ -83,22 +84,22 @@ def reset_password(
 
 
 
+# @limiter.limit("5/minute")
 # -- REFRESH TOKENS --
 # PROTECTED (?)
 @router.post("/refresh", response_model=AccessRefreshToken)
-@limiter.limit("5/minute")
 def refresh_tokens(
-    request: Request,
+    body: RefreshRequest,
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
-    session: Annotated[Session, Depends(SessionDep)],
-    refresh_token: Annotated[str | None, Cookie()] = None # Cookie is a HTTP header
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    session: SessionDep # session: Annotated[Session, Depends(SessionDep)] => created args & kwargs issue 
 ):
     
-    if not refresh_token:
+    if not body:
         logger.warning("Refresh token missing")
         raise MissingRefreshTokenError()
         
-    return AuthService.refresh_tokens(refresh_token, student_id, session)
+    return auth_service.refresh_tokens(body.refresh_token, student_id, session)
 
 
 # -- LOGOUT --

@@ -10,7 +10,7 @@ from pydantic import EmailStr
 from sqlmodel import delete, Session, select
 
 from ..models.student import StudentInDB
-from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
+from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken, RefreshRequest
 from ..core.settings import settings
 from ..utils.validators import normalize_email
 from ..utils.hash_reset_token import hash_reset_token
@@ -206,43 +206,36 @@ class AuthService():
     # -- VALIDATE REFRESH TOKEN -- -> token | None
     @staticmethod
     def validate_refresh_token(refresh_token: str, student_id: uuid.UUID, session: Session) -> RefreshTokenInDB | None:
-        
+
         try:
             logger.info(f"Validating refresh token for student: {student_id}")
-            logger.debug(f"Raw token: {refresh_token[:20]}")
-            
-            # hash raw token
-            hashed_refresh_token = AuthService.get_password_hash(refresh_token)
-            logger.debug(f"Hashed token: '{hashed_refresh_token[:20]}'")
-            
-            # query select existing token in db 
+
+            # fetch all valid (non-revoked, non-expired) tokens for this student
+            # Argon2 is salted/non-deterministic: can't hash and compare directly,
+            # must retrieve candidates and verify with verify_password()
             check_token_validity = select(RefreshTokenInDB).where(
                 RefreshTokenInDB.student_id == student_id,
-                RefreshTokenInDB.token_hash == hashed_refresh_token
+                RefreshTokenInDB.revoked_at.is_(None),
+                RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
             )
-            # execute query
-            valid_token: RefreshTokenInDB | None = session.exec(check_token_validity).first()
-            
-            # if token incorrect or expired (deleted from db), error
+            candidates: list[RefreshTokenInDB] = session.exec(check_token_validity).all()
+
+            # find the token whose stored hash matches the raw token
+            valid_token: RefreshTokenInDB | None = None
+            for candidate in candidates:
+                if AuthService.verify_password(refresh_token, candidate.token_hash):
+                    valid_token = candidate
+                    break
+
             if not valid_token:
                 logger.warning(f"Token not found in DB: invalid/expired")
                 return None
-            
-            # if token revoked, error
-            if valid_token.revoked_at is not None:
-                logger.warning(f"Refresh token revoked at {valid_token.revoked_at}")
-                return None
-            
-            # if token expired, but not yet deleted from db, ERROR
-            if valid_token.expires_at <= datetime.now(timezone.utc):
-                logger.warning(f"Refresh token expired: {valid_token.expires_at} < {datetime.now(timezone.utc)}")
-                return None
-            
+
             logger.debug(f"Refresh token validated successfully for student {student_id}")
-            
+
             return valid_token
-        
-        except(SQLAlchemyError, ValueError, TypeError) as e:
+
+        except (SQLAlchemyError, ValueError, TypeError) as e:
             logger.error(f"DB/hash error during refresh token validation for student {student_id}: {str(e)}")
             return None
     
@@ -251,25 +244,26 @@ class AuthService():
     # -- REFRESH TOKEN ROTATION --
     @staticmethod
     def rotate_refresh_token(refresh_token: RefreshTokenInDB, session: Session) -> str:
-        
+
+        student_id = refresh_token.student_id
+
         try:
-            # extract student id
-            student_id = refresh_token.student_id
-            
-            with session.begin():
-                # revoke current refresh_token
-                refresh_token.revoked_at = datetime.now(timezone.utc)
-                session.add(refresh_token)
-            
-                # create new refresh token
-                new_refresh_token = AuthService.create_refresh_token(student_id, session) 
-                
+            # revoke current refresh_token
+            refresh_token.revoked_at = datetime.now(timezone.utc)
+            session.add(refresh_token)
+
+            # create new refresh token (session.add() called inside, no commit)
+            new_refresh_token = AuthService.create_refresh_token(student_id, session)
+
+            # commit the already-open transaction (autobegin started by validate_refresh_token's SELECT)
+            session.commit()
+
             logger.debug(f"Refresh token rotated for student {student_id}")
-            
+
             return new_refresh_token
-        
+
         except Exception as e:
-            
+            session.rollback()
             logger.error(f"Refresh token rotation failed for student {student_id}: {str(e)}")
             raise DatabaseError("Refresh token rotation failed")
     

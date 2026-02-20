@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import uuid
 from sqlalchemy import Column, DateTime, func
 from sqlmodel import SQLModel, Relationship, Field
@@ -52,4 +52,9 @@ class RefreshTokenInDB(SQLModel, table=True):
     student: "StudentInDB" = Relationship(back_populates="refresh_tokens")
 
 
-
+class RefreshRequest(BaseModel):
+    refresh_token: str
+    
+    model_config = ConfigDict(
+        extra="ignore"
+    )

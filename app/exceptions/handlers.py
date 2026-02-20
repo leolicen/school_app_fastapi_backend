@@ -261,11 +261,20 @@ def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntr
 
 # -- REQUEST VALIDATION --
 async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    
+
+    filtered_errors = [e for e in exc.errors() if e['loc'][-1] not in ('args', 'kwargs')]
+
+    if not filtered_errors:
+        logger.critical(f"Only args/kwargs validation errors at {request.url} - check endpoint decorators (slowapi)")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}
+        )
+
     logger.warning(f"Validation error {request.url}", exc_info=True)
-    
-    detail = jsonable_encoder(exc.errors())
-    
+
+    detail = jsonable_encoder(filtered_errors)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"error": {"code": "VALIDATION_ERROR", "message": "Invalid input data", "detail": detail}}
