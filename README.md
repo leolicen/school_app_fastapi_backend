@@ -52,7 +52,7 @@ They can:
 - 🛡️ **Error Handling** with custom errors and handlers
 - 🧪 **Testing** with Pytest
 - 📚 **Auto-documentation** with FastApi /docs & /redoc
-- 🐳 **Docker Compose** => 4-containers Docker stack (FastAPI app + MySQL + phpmyadmin + redis)
+- 🐳 **Docker Compose** => 4-containers Docker stack (FastAPI app + MySQL + phpMyAdmin + Redis)
 
 ## Quick Start
 
@@ -84,7 +84,7 @@ cp .env.example .env
 
 Edit `.env` file by replacing comments next to variables with custom values:
 
-*Cancel '# set a secure password' comment.*
+**E.g.** *Cancel '# set a secure password' comment.*
 ```python
 # Database MySQL
 DB_USER=root
@@ -110,7 +110,7 @@ Do the same for all commented variables. You can, of course, modify existing val
 
 The app makes use of Resend to allow users to reset their password by email.
 
-If you want to use this feature, first [create an account](https://resend.com/home).
+If you want to use this feature, first [create a Resend account](https://resend.com/home).
 
 [Add a domain](https://resend.com/domains) you own to be able to send and receive emails. Otherwise, just use Resend test domain (already set
 in `.env`). Please note that the test domain only works with the address used during registration.
@@ -128,7 +128,7 @@ docker-compose up -d
 ### 4. Access application
 
 - **API Docs**: http://localhost:8000/docs or http://localhost:8000/redoc
-- **phpMyAdmin**: http://localhost:8080 (use your MySql credentials to login)
+- **phpMyAdmin**: http://localhost:8080 (use your MySQL credentials to login)
 - **Redis**: http://localhost:6379
 
 ## Local development (No Docker)
@@ -176,6 +176,7 @@ school-app-fastapi-backend/
 ├── .python-version
 ├── docker-compose.yml
 ├── Dockerfile
+├── main.py
 ├── pyproject.toml
 ├── pytest.ini
 ├── README.it.md
