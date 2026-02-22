@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 import jwt
 import logging
 from typing import Annotated
-from fastapi import Depends, Header
+from fastapi import Depends
 from jwt import InvalidTokenError
 
 from app.services.auth import AuthService
@@ -13,7 +13,7 @@ from .services.student import StudentService
 from .models.student import StudentPublic
 from .services.course import CourseService
 from .services.internship import InternshipService
-from .exceptions.exceptions import InactiveStudentError, InvalidCredentialsError
+from .exceptions.exceptions import InactiveStudentError
 from .services.auth import AuthService
 from .core.redis import RedisDep
 
@@ -98,13 +98,8 @@ async def get_current_active_student(current_student: Annotated[StudentPublic, D
 # -- GET CURRENT USER ID ONLY -- (with EXPIRED ACCESS TOKEN) --
 # used in /auth/refresh to retrieve student id even with an expired access token  
 def get_current_student_id_only(
-    authorization: str | None = Header(None)
+    token: str = Depends(oauth2_scheme)
     ) -> uuid.UUID:
-    
-    if not authorization or not authorization.startswith("Bearer "):
-        raise InvalidCredentialsError("Invalid authorization header")
-    
-    token = authorization[len("Bearer "):]
     
     try:
         
@@ -137,34 +132,5 @@ def get_current_student_id_only(
 
 
 
-
-# def get_current_student_id_only(
-#     token: str = Depends(oauth2_scheme)
-#     ) -> uuid.UUID:
-    
-#     try:
-        
-#         logger.debug("Extracting student ID for refresh")
-        
-#         payload = jwt.decode(
-#             token, 
-#             settings.secret_key, 
-#             algorithms=[settings.algorithm],
-#             options={ "verify_exp": False}  # does not check token expiration
-#         )
-        
-#         student_id_str: str = payload.get("sub")
-        
-#         if student_id_str is None:
-#             logger.warning(f"Missing 'sub' claim")
-#             raise InvalidTokenError("Missing subject in access token")
-        
-#         logger.debug(f"Student ID extracted. Authorized to refresh token")
-        
-#         return uuid.UUID(student_id_str)
-    
-#     except (jwt.PyJWTError, ValueError):
-#         logger.warning("Access token decode failed")
-#         raise InvalidTokenError("Invalid access token for refresh")
 
 
