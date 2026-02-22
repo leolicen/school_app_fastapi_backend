@@ -89,17 +89,17 @@ def reset_password(
 # PROTECTED (?)
 @router.post("/refresh", response_model=AccessRefreshToken)
 def refresh_tokens(
-    body: RefreshRequest,
+    refresh_request: RefreshRequest,
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
     session: SessionDep # session: Annotated[Session, Depends(SessionDep)] => created args & kwargs issue 
 ):
     
-    if not body:
+    if not refresh_request:
         logger.warning("Refresh token missing")
         raise MissingRefreshTokenError()
         
-    return auth_service.refresh_tokens(body.refresh_token, student_id, session)
+    return auth_service.refresh_tokens(refresh_request.refresh_token, student_id, session)
 
 
 # -- LOGOUT --
