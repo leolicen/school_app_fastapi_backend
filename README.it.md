@@ -52,7 +52,7 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 - 🛡️ **Gestione degli errori** con errori e handler personalizzati 
 - 🧪 **Test** con Pytest
 - 📚 **Auto-documentazione** con FastApi /docs & /redoc
-- 🐳 **Docker Compose** => stack di 4 container Docker (app FastAPI + MySQL + phpmyadmin + redis)
+- 🐳 **Docker Compose** => stack di 4 container Docker (app FastAPI + MySQL + phpMyAdmin + Redis)
 
 ## Avvio rapido
 
@@ -84,7 +84,7 @@ cp .env.example .env
 
 Modifica il file `.env` sostituendo i commenti accanto alle variabili con valori personalizzati:
 
-*Cancella il commento '# set a secure password'.*
+**Es.** *Cancella il commento '# set a secure password'.*
 ```python
 # Database MySQL
 DB_USER=root
@@ -110,7 +110,7 @@ Fai lo stesso per tutte le variabili commentate. Naturalmente, puoi modificare a
 
 L'applicazione usa Resend per permettere all'utente di resettare la propria password tramite email.
 
-Se vuoi utilizzare questo servizio, [crea un account](https://resend.com/home).
+Se vuoi utilizzare questo servizio, [crea un account Resend](https://resend.com/home).
 
 [Aggiungi un dominio](https://resend.com/domains) personale per inviare e ricevere email. Altrimenti, usa l'indirizzo email di test 
 (già impostato in `.env`). N.B. L'indirizzo di test funziona solo con l'email fornita in fase di registrazione.
@@ -128,7 +128,7 @@ docker-compose up -d
 ### 4. Accedi all'applicazione
 
 - **Documentazione API**: http://localhost:8000/docs oppure http://localhost:8000/redoc
-- **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySql per effettuare il login)
+- **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySQL per effettuare il login)
 - **Redis**: http://localhost:6379
 
 ## Sviluppo locale (No Docker)
@@ -177,6 +177,7 @@ school-app-fastapi-backend/
 ├── .python-version
 ├── docker-compose.yml
 ├── Dockerfile
+├── main.py
 ├── pyproject.toml
 ├── pytest.ini
 ├── README.it.md
