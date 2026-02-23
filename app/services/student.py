@@ -106,9 +106,7 @@ class StudentService():
         
             # create refresh token (token hash saved in db + raw token returned)
             refresh_token = self.auth_service.create_refresh_token(student.student_id, self._db)
-            
-            self._db.commit()
-            
+
             return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token) 
             
         except Exception as e:
@@ -145,7 +143,6 @@ class StudentService():
         try:
             # add new student to DB
             self._db.add(new_student)
-            self._db.commit()
             self._db.refresh(new_student)
             
             logger.debug(f"STUDENT ID after add and model refresh: {new_student.student_id}")
@@ -210,11 +207,10 @@ class StudentService():
         
         try:
             self._db.add(student_in_db)
-            self._db.commit()
             self._db.refresh(student_in_db)
-        
+
             return StudentPublic.model_validate(student_in_db)
-        
+
         except Exception:
             self._db.rollback()
             raise DatabaseError("Failed to update student")
@@ -245,9 +241,8 @@ class StudentService():
         
         try:
             self._db.add(student_in_db)
-            self._db.commit()
             self._db.refresh(student_in_db)
-            
+
         except Exception as e:
             self._db.rollback()
             raise DatabaseError(f"Failed to change password")
@@ -296,7 +291,6 @@ class StudentService():
             # delete reset token 
             self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
             self._db.add(student_in_db)
-            self._db.commit()
             self._db.refresh(student_in_db)
         
             return {"detail": "Password updated successfully"}
@@ -332,9 +326,7 @@ class StudentService():
             result = self._db.exec(revoke_refresh_token)
         
             rowcount = result.rowcount
-            
-            self._db.commit()
-            
+
             if rowcount == 0:
                 logger.debug(f"No active refresh token for student {student_id}")
             else:
@@ -402,12 +394,11 @@ class StudentService():
     async def delete_student(self, student: StudentPublic, access_token: str) -> dict[str, str]:
         
         try:
-            with self._db.begin():
-                # retrieve student from db
-                student_in_db = self.get_student_by_email(student.email)
-                # set 'deleted_at' time
-                student_in_db.deleted_at = datetime.now(timezone.utc)
-                
+            # retrieve student from db
+            student_in_db = self.get_student_by_email(student.email)
+            # set 'deleted_at' time
+            student_in_db.deleted_at = datetime.now(timezone.utc)
+
             # logout
             await self.logout(student.student_id, access_token)
             

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Tuple
 from typing import Sequence
@@ -133,8 +133,11 @@ class InternshipService():
             raise InternshipCompletedError()
             
         # get total hours to add
-        entry_hours = entry.end_time - entry.start_time
-        
+        dummy_date = date.today()
+        entry_hours = Decimal(
+            (datetime.combine(dummy_date, entry.end_time) - datetime.combine(dummy_date, entry.start_time)).seconds / 3600
+        )
+
         # check if entry hours are more than remaining ones
         if entry_hours > remaining_hours:
             logger.warning(f"Student is trying to insert {entry_hours} hours, but only {remaining_hours} are left")
@@ -153,7 +156,7 @@ class InternshipService():
         # exists() does not instantiate models, but only checks existence
         overlap_stmt = select(exists().where(
             InternshipEntryInDB.agreement_id == agreement_id,
-            InternshipEntryInDB.date == db_entry.date,
+            InternshipEntryInDB.entry_date == db_entry.entry_date,
             and_(
                 InternshipEntryInDB.start_time < db_entry.end_time, 
                 InternshipEntryInDB.end_time > db_entry.start_time 
@@ -162,7 +165,7 @@ class InternshipService():
         )
         
         # execute query => bool (1 o 0)
-        overlap_exists = self._db.exec(overlap_stmt).scalar()
+        overlap_exists = self._db.exec(overlap_stmt).first()
     
         if overlap_exists:
             logger.warning("Overlapping entry time")
@@ -176,22 +179,21 @@ class InternshipService():
     # -- CREATE ENTRY AND UPDATE AGREEMENT --
     def create_entry_and_update_agreement(self, agreement_id: uuid.UUID, valid_entry: InternshipEntryInDB, entry_hours: Decimal) -> InternshipEntryInDB:
         
-        with self._db.begin():
+        # add db_entry to db
+        self._db.add(valid_entry)
 
-            # add db_entry to db
-            self._db.add(valid_entry)
-            
-            # retrieve agreement
-            agreement = self._db.get(InternshipAgreementInDB, agreement_id)
-            
-            # update agreement attended hours
-            if agreement:
-                current_attended = agreement.attended_hours or Decimal("0")
-                updated_attended = current_attended + entry_hours
-                agreement.attended_hours = min(updated_attended, agreement.total_hours)
-                self._db.add(agreement)
-            
-            self._db.refresh(valid_entry) 
+        # retrieve agreement
+        agreement = self._db.get(InternshipAgreementInDB, agreement_id)
+
+        # update agreement attended hours
+        if agreement:
+            current_attended = agreement.attended_hours or Decimal("0")
+            updated_attended = current_attended + entry_hours
+            agreement.attended_hours = min(updated_attended, agreement.total_hours)
+            self._db.add(agreement)
+
+        self._db.flush()
+        self._db.refresh(valid_entry)
             
         
         return valid_entry
@@ -206,10 +208,13 @@ class InternshipService():
         self.validate_remaining_hours(agreement_id, entry)
         
         # check overlapping hours and return EntryInDB
-        valid_db_entry: InternshipEntryInDB = self.validate_entry_no_overlap(entry)
+        valid_db_entry: InternshipEntryInDB = self.validate_entry_no_overlap(agreement_id, entry)
         
-        # get total entry hours to add 
-        entry_hours = entry.end_time - entry.start_time
+        # get total entry hours to add
+        dummy_date = date.today()
+        entry_hours = Decimal(
+            (datetime.combine(dummy_date, entry.end_time) - datetime.combine(dummy_date, entry.start_time)).seconds / 3600
+        )
         
        # add entry to db, update agreement and return EntryInDB
         created_entry: InternshipEntryInDB = self.create_entry_and_update_agreement(agreement_id, valid_db_entry, entry_hours)
@@ -229,7 +234,7 @@ class InternshipService():
         entry_to_delete = self._db.exec(
             select(InternshipEntryInDB).where(
             InternshipEntryInDB.entry_id == entry_id,
-            InternshipEntryInDB.date >= now - timedelta(days=10)
+            InternshipEntryInDB.entry_date >= now - timedelta(days=10)
         )
         ).first()
         
@@ -245,24 +250,25 @@ class InternshipService():
     def delete_entry_and_update_agreement(self, entry_to_delete: InternshipEntryInDB) -> None:
         
         # get total entry hours to subtract
-        entry_hours = entry_to_delete.end_time - entry_to_delete.start_time
-        
+        dummy_date = date.today()
+        entry_hours = Decimal(
+            (datetime.combine(dummy_date, entry_to_delete.end_time) - datetime.combine(dummy_date, entry_to_delete.start_time)).seconds / 3600
+        )
+
         # get entry agreement id
         agreement_id = entry_to_delete.agreement_id
-        
-        with self._db.begin():
-        
-            # delete entry
-            self._db.delete(entry_to_delete)
-            
-            # update agreement attended hours
-            agreement = self._db.get(InternshipAgreementInDB, agreement_id)
-            
-            if agreement:
-                current_attended = agreement.attended_hours or Decimal("0")
-                updated_attended = current_attended - entry_hours
-                agreement.attended_hours = max(updated_attended, Decimal("0"))
-                self._db.add(agreement)
+
+        # delete entry
+        self._db.delete(entry_to_delete)
+
+        # update agreement attended hours
+        agreement = self._db.get(InternshipAgreementInDB, agreement_id)
+
+        if agreement:
+            current_attended = agreement.attended_hours or Decimal("0")
+            updated_attended = current_attended - entry_hours
+            agreement.attended_hours = max(updated_attended, Decimal("0"))
+            self._db.add(agreement)
         
     
     
