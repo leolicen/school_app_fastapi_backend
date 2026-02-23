@@ -130,22 +130,20 @@ class AuthService():
             raise ValueError("Email not registered") # only within the app => intercepted by request_password_reset with 'pass' => no info to the client
         
         
-        # with block => auto-commit + auto-rollback
-        with session.begin(): 
-            # delete any other already existing token
-            delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
-            session.exec(delete_previuos_tokens)
-            # create new token
-            raw_token = secrets.token_urlsafe(32)
-            # hash token
-            token_hash = hash_reset_token(raw_token)
-            # create new ResetToken with hashed token linked to email
-            reset_token = ResetTokenInDB(
-                email=normalized_email,
-                token_hash=token_hash,
-                expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
-            )
-            session.add(reset_token)
+        # delete any other already existing token
+        delete_previuos_tokens = delete(ResetTokenInDB).where(ResetTokenInDB.email == normalized_email)
+        session.exec(delete_previuos_tokens)
+        # create new token
+        raw_token = secrets.token_urlsafe(32)
+        # hash token
+        token_hash = hash_reset_token(raw_token)
+        # create new ResetToken with hashed token linked to email
+        reset_token = ResetTokenInDB(
+            email=normalized_email,
+            token_hash=token_hash,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=15)
+        )
+        session.add(reset_token)
             
         logger.debug(f"Reset token created for email {normalized_email}")
     
@@ -159,20 +157,19 @@ class AuthService():
         
         # hash raw token
         reset_token_hash = hash_reset_token(raw_reset_token)
-        
-        with session.begin():
-            # query to select valid reset token  from db
-            check_token = select(ResetTokenInDB).where(
-                ResetTokenInDB.token_hash == reset_token_hash,
-                ResetTokenInDB.expires_at > datetime.now(timezone.utc)
-            )
-            # execute query => token | None
-            db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
-            
-            if not db_valid_token:
-                logger.warning("Invalid/expired reset token attempt")
-                raise InvalidResetTokenError()
-        
+
+        # query to select valid reset token from db
+        check_token = select(ResetTokenInDB).where(
+            ResetTokenInDB.token_hash == reset_token_hash,
+            ResetTokenInDB.expires_at > datetime.now(timezone.utc)
+        )
+        # execute query => token | None
+        db_valid_token: ResetTokenInDB | None = session.exec(check_token).first()
+
+        if not db_valid_token:
+            logger.warning("Invalid/expired reset token attempt")
+            raise InvalidResetTokenError()
+
         return db_valid_token
         
        
@@ -194,7 +191,7 @@ class AuthService():
             expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
         )
         
-        session.add(refresh_token_in_db) # session.commit() will be executed from the function that calls this method (e.g. login_for_access_token())
+        session.add(refresh_token_in_db)
         
         logger.debug(f"Refresh token created for student {student_id}")
         
@@ -254,9 +251,6 @@ class AuthService():
 
             # create new refresh token (session.add() called inside, no commit)
             new_refresh_token = AuthService.create_refresh_token(student_id, session)
-
-            # commit the already-open transaction (autobegin started by validate_refresh_token's SELECT)
-            session.commit()
 
             logger.debug(f"Refresh token rotated for student {student_id}")
 
