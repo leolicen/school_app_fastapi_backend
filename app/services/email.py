@@ -22,11 +22,11 @@ class EmailService():
         
         # define email parameters 
         params: resend.Emails.SendParams = {
-            "from": f"Acme <{settings.resend_from}>",
+            "from": f"NoReplySchool-app <{settings.resend_from}>",
             "to": [f"{email}"],
             "subject": "Reset password",
             "html": f"""<h2>Reset password</h2>
-            <p>Clicca <a href="{reset_url}">qui</a> entro 15 minuti.</p>
+            <p>Click <a href="{reset_url}">here</a> within 15 minutes to reset your password.</p>
             """
         }
         

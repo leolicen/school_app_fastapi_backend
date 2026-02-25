@@ -299,7 +299,7 @@ class StudentService():
             self._db.flush()
             self._db.refresh(student_in_db)
         
-            return {"detail": "Password updated successfully"}
+            return {"detail": "Password reset successfully"}
         
         except Exception:
             self._db.rollback()
