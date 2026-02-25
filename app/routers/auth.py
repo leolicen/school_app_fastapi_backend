@@ -104,10 +104,11 @@ def refresh_tokens(
 
 # -- LOGOUT --
 # PROTECTED (?)
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     student_service: Annotated[StudentService, Depends(get_student_service)],
     access_token: Annotated[str, Depends(oauth2_scheme)]
 ):
     await student_service.logout(student_id, access_token)
+    return {"detail": "Student successfully logged out"}
