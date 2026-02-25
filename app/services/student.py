@@ -143,6 +143,7 @@ class StudentService():
         try:
             # add new student to DB
             self._db.add(new_student)
+            self._db.flush()
             self._db.refresh(new_student)
             
             logger.debug(f"STUDENT ID after add and model refresh: {new_student.student_id}")
@@ -207,6 +208,7 @@ class StudentService():
         
         try:
             self._db.add(student_in_db)
+            self._db.flush()
             self._db.refresh(student_in_db)
 
             return StudentPublic.model_validate(student_in_db)
@@ -241,6 +243,7 @@ class StudentService():
         
         try:
             self._db.add(student_in_db)
+            self._db.flush()
             self._db.refresh(student_in_db)
 
         except Exception as e:
@@ -291,6 +294,7 @@ class StudentService():
             # delete reset token 
             self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
             self._db.add(student_in_db)
+            self._db.flush()
             self._db.refresh(student_in_db)
         
             return {"detail": "Password updated successfully"}
