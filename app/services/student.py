@@ -97,6 +97,8 @@ class StudentService():
                     raise AccountExpiredError()
     
                 student.deleted_at = None
+                
+                student.is_active = True
                    
             # if student is authenticated, create access token with their id
             access_token = self.auth_service.create_access_token(
@@ -402,6 +404,7 @@ class StudentService():
             student_in_db = self.get_student_by_email(student.email)
             # set 'deleted_at' time
             student_in_db.deleted_at = datetime.now(timezone.utc)
+            student_in_db.is_active = False
 
             # logout
             await self.logout(student.student_id, access_token)

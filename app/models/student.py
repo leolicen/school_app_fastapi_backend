@@ -47,7 +47,13 @@ class StudentInDB(StudentBase, table=True):
             )
         )
     
-    student_updated_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now())) # automatically adds time when model is updated
+    student_updated_at: Optional[datetime] = Field(
+        default=None, 
+        sa_column=Column(
+            DateTime(timezone=True), 
+            onupdate=func.now()
+            )
+        ) # automatically adds time when model is updated
     pwd_changed_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     pwd_reset_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
    
