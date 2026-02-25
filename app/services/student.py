@@ -91,7 +91,7 @@ class StudentService():
         try:
             # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
             if student.deleted_at:
-                delta = datetime.now(timezone.utc) - student.deleted_at
+                delta = datetime.now(timezone.utc) - student.deleted_at.replace(tzinfo=timezone.utc)
                 
                 if delta.days >= 30:
                     raise AccountExpiredError()
