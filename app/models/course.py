@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, List, Optional
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime, timezone
 import uuid
@@ -63,6 +64,15 @@ class CourseInDB(CourseBase, table=True):
 # -- COURSE PUBLIC --
 class CoursePublic(CourseBase):
     course_id: uuid.UUID
+    
+
+# -- COURSE LIST PUBLIC --
+class CourseListPublic(BaseModel):
+    """ 
+    Model used for public courses list.
+    """
+    course_id: uuid.UUID
+    name: str = Field(max_length=100)
 
 
 
