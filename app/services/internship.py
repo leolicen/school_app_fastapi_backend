@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import List, Tuple
-from typing import Sequence
+from typing import Sequence, List, Tuple
 import uuid
 from sqlalchemy import and_, exists
 from sqlmodel import Session, select
