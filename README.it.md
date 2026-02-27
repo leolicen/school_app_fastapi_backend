@@ -203,7 +203,8 @@ school-app-fastapi-backend/
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /courses | GET | Leggi info sul corso dello studente | Sì | Attivo, Inattivo |
+| /courses | GET | Leggi lista di corsi attivi | No | - |
+| /courses/me | GET | Leggi info corso studente | Sì | Attivo, Inattivo |
 
 ### 3. Router Internship
 
