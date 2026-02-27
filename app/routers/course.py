@@ -1,5 +1,6 @@
 from typing import Annotated, List
 from fastapi import APIRouter, Depends
+
 from ..models.course import CoursePublic, CourseListPublic
 from ..models.student import StudentPublic
 from ..dependencies import get_current_student, get_course_service
@@ -13,8 +14,7 @@ router = APIRouter(
     tags=["courses"],
 )
 
-# -- GET COURSES LIST --
-# PROTECTED (active & inactive students)
+# -- GET COURSES LIST -- (PUBLIC)
 @router.get("/", response_model=List[CourseListPublic])
 def get_courses_list(
     course_service: Annotated[CourseService, Depends(get_course_service)]
@@ -23,7 +23,7 @@ def get_courses_list(
 
 
 
-# -- GET STUDENT COURSE --
+# -- GET STUDENT COURSE -- [PROTECTED (active & inactive students)]
 @router.get("/me", response_model=CoursePublic)
 def get_student_course(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],

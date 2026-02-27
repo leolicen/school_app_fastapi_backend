@@ -1,8 +1,9 @@
 from typing import List, Sequence, Tuple
 import uuid
 from sqlmodel import Session, select
-from ..models.course import CourseInDB, CoursePublic, CourseListPublic
 import logging
+
+from ..models.course import CourseInDB, CoursePublic, CourseListPublic
 from ..exceptions.exceptions import CourseNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -15,9 +16,14 @@ class CourseService():
         
     # -- GET COURSES LIST --
     def get_courses_list(self) -> List[CourseListPublic]:
+        """ 
+        Retrieves a list of available courses (active courses only).
+        """
         
         courses_list: Sequence[Tuple[uuid.UUID, str]] = self._db.exec(
-            select(CourseInDB.course_id, CourseInDB.name)
+            select(CourseInDB.course_id, CourseInDB.name).where(
+                CourseInDB.is_active == True 
+            )
         ).all()
         
         return [CourseListPublic(course_id=course_id, name=name) for course_id, name in courses_list]
@@ -26,6 +32,9 @@ class CourseService():
         
     # -- GET STUDENT COURSE --
     def get_student_course(self, course_id: uuid.UUID) -> CoursePublic:
+        """ 
+        Retrieves the course attended by the authenticated student.
+        """
         
         # select course by id 
         get_course_stmt = select(CourseInDB).where(
