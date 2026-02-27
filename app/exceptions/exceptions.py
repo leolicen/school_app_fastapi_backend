@@ -41,7 +41,7 @@ class StudentNotFoundError(AppError):
 
 # -- INACTIVE STUDENT --
 class InactiveStudentError(AppError):
-    def __init__(self, message: str = "Inactive student"):
+    def __init__(self, message: str = "Account is inactive"):
         super().__init__(message, "INACTIVE_STUDENT")
         
         
@@ -83,7 +83,7 @@ class AgreementForbiddenError(AppError):
         
 # -- AGREEMENT ENTRY MISMATCH --
 class AgreementEntryMismatchError(AppError):
-    def __init__(self, message: str = "Agreement mismatch"):
+    def __init__(self, message: str = "Entry does not belong to the specified agreement"):
         super().__init__(message, "AGREEMENT_MISMATCH")
         
 
@@ -107,6 +107,6 @@ class InternshipOverlappingEntryError(AppError):
         
 # -- INTERNSHIP ENTRY NOT DELETABLE --
 class InternshipEntryNotDeletableError(AppError):
-    def __init__(self, message: str = "Entry not found or too old to be canceled"):
+    def __init__(self, message: str = "Entry not found or too old to be deleted"):
         super().__init__(message, "INTERNSHIP_ENTRY_NOT_DELETABLE")
 

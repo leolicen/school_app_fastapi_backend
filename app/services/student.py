@@ -87,33 +87,32 @@ class StudentService():
         
         if not student:
             raise InvalidCredentialsError()
-        
+
+        # check account expiry BEFORE the try block to avoid AppError being swallowed by except Exception
+        if student.deleted_at:
+            delta = datetime.now(timezone.utc) - student.deleted_at.replace(tzinfo=timezone.utc)
+
+            if delta.days >= 30:
+                raise AccountExpiredError()
+
+            student.deleted_at = None
+            student.is_active = True
+
         try:
-            # if 'deleted_at' field is not None (account SOFT DELETE) + <= 30 days (hard delete after), delete 'deleted_at' value and reactivate student account
-            if student.deleted_at:
-                delta = datetime.now(timezone.utc) - student.deleted_at.replace(tzinfo=timezone.utc)
-                
-                if delta.days >= 30:
-                    raise AccountExpiredError()
-    
-                student.deleted_at = None
-                
-                student.is_active = True
-                   
             # if student is authenticated, create access token with their id
             access_token = self.auth_service.create_access_token(
-                student.student_id, 
+                student.student_id,
                 timedelta(minutes=settings.access_token_expire_minutes)
                 )
-        
+
             # create refresh token (token hash saved in db + raw token returned)
             refresh_token = self.auth_service.create_refresh_token(student.student_id, self._db)
 
-            return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token) 
-            
+            return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token)
+
         except Exception as e:
             self._db.rollback()
-            raise DatabaseError(f"Login failed: {str(e)}")
+            raise DatabaseError("Login failed")
             
             
             
@@ -281,7 +280,7 @@ class StudentService():
         
         # unnecessary check (token already validated), only for 100% security
         if not student_in_db:
-            raise StudentNotFoundError("Student associated with reset token not found")
+            raise StudentNotFoundError()
         
         # create new pwd hash
         new_pwd_hash = self.auth_service.get_password_hash(new_password)
