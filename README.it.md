@@ -203,26 +203,26 @@ school-app-fastapi-backend/
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /courses | GET | Leggi lista di corsi attivi | No | - |
-| /courses/me | GET | Leggi info corso studente | Sì | Attivo, Inattivo |
+| /courses | GET | Lettura lista corsi attivi | No | - |
+| /courses/me | GET | Lettura info corso studente | Sì | Attivo, Inattivo |
 
 ### 3. Router Internship
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /internship-agreements | GET | Leggi info accordo/i di tirocinio | Sì | Attivo, Inattivo |
-| /internship-agreements/{agreement_id}/entries | GET | Leggi info turni di tirocinio | Sì | Attivo, Inattivo |
-| /internship-agreements/{agreement_id}/entries | POST | Crea nuovo turno di tirocinio | Sì | Attivo |
-| /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Elimina turno tirocinio | Sì | Attivo |
+| /internship-agreements | GET | Lettura info accordo/i di tirocinio | Sì | Attivo, Inattivo |
+| /internship-agreements/{agreement_id}/entries | GET | Lettura info turni di tirocinio | Sì | Attivo, Inattivo |
+| /internship-agreements/{agreement_id}/entries | POST | Creazione nuovo turno di tirocinio | Sì | Attivo |
+| /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Eliminazione turno tirocinio | Sì | Attivo |
 
 ### 4. Router Student
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /students/me | GET | Leggi info studente | Sì | Attivo, Inattivo |
-| /students/me | PATCH | Aggiorna info studente | Sì | Attivo | 
-| /students/me | DELETE | Elimina account studente | Sì | Attivo, Inattivo |
-| /students/change-password | Cambia pwd studente | POST | Sì | Attivo, Inattivo |
+| /students/me | GET | Lettura info studente | Sì | Attivo, Inattivo |
+| /students/me | PATCH | Aggiornamento info studente | Sì | Attivo | 
+| /students/me | DELETE | Eliminazione account studente | Sì | Attivo, Inattivo |
+| /students/change-password | Modifica pwd studente | POST | Sì | Attivo, Inattivo |
 
 
 
