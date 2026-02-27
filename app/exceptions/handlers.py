@@ -71,8 +71,8 @@ def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError) -> JSONResponse:
     logger.critical(f"PyJWTError at {request.url}: {exc}")
     
     return JSONResponse(
-        status_code=500, 
-        content={"error": {"code": "INTERNAL_ERROR"}} 
+        status_code=500,
+        content={"error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}
         )
 
     

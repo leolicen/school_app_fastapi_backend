@@ -107,7 +107,7 @@ class InternshipService():
         
         if result is None: # None only if agreement does not exist
             logger.warning(f"Agreement {agreement_id} missing despite ownership check")
-            return AgreementForbiddenError()
+            raise AgreementForbiddenError()
 
         
         total_hours, attended_hours = result
