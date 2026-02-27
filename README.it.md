@@ -222,7 +222,7 @@ school-app-fastapi-backend/
 | /students/me | GET | Lettura info studente | Sì | Attivo, Inattivo |
 | /students/me | PATCH | Aggiornamento info studente | Sì | Attivo | 
 | /students/me | DELETE | Eliminazione account studente | Sì | Attivo, Inattivo |
-| /students/change-password | Modifica pwd studente | POST | Sì | Attivo, Inattivo |
+| /students/change-password | POST | Modifica pwd studente | Sì | Attivo, Inattivo |
 
 
 
