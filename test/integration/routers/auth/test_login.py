@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class TestLoginWithExistingUser:
     """ Test login scenarios for registered users """
 
-    async def test_login_with_valid_credentials(async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_valid_credentials(self, async_client: AsyncClient, test_user: StudentInDB):
         
         response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
         
@@ -28,7 +28,7 @@ class TestLoginWithExistingUser:
         
         
     
-    async def test_login_with_invalid_password(async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_invalid_password(self, async_client: AsyncClient, test_user: StudentInDB):
         
         response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "ciao"})
         
@@ -46,7 +46,7 @@ class TestLoginWithExistingUser:
         
         
         
-    async def test_login_with_no_password(async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_no_password(self, async_client: AsyncClient, test_user: StudentInDB):
         
         response = await async_client.post("/auth/login", data={"username": test_user.email, "password": ""})
         
@@ -65,7 +65,7 @@ class TestLoginWithExistingUser:
 class TestLoginWithNonExistingUser:
     """ Test login scenarios for non-registered users """
     
-    async def test_login_with_no_email(async_client: AsyncClient):
+    async def test_login_with_no_email(self, async_client: AsyncClient):
         
         response = await async_client.post("/auth/login", data={"username": "", "password": "!#CrediblePasSw0rd"})
         
@@ -76,7 +76,7 @@ class TestLoginWithNonExistingUser:
         
         
     
-    async def test_login_with_non_registered_correct_email(async_client: AsyncClient):
+    async def test_login_with_non_registered_correct_email(self, async_client: AsyncClient):
         
         response = await async_client.post("/auth/login", data={"username": "testemail@yahoo.com", "password": "!#CrediblePasSw0rd"})
         
@@ -87,7 +87,7 @@ class TestLoginWithNonExistingUser:
         
         
         
-    async def test_login_with_incorrect_email(async_client: AsyncClient):
+    async def test_login_with_incorrect_email(self, async_client: AsyncClient):
         
         response = await async_client.post("/auth/login", data={"username": "abc", "password": "!#CrediblePasSw0rd"})
         
