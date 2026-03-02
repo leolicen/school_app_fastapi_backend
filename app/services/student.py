@@ -123,15 +123,19 @@ class StudentService():
         if self.get_student_by_email(student.email):
             raise DuplicateEmailError()
         
-        # check if inserted course_id is an existing course
-        course = self._db.get(CourseInDB, student.course_id)
+        # check if inserted course_id is an existing active course
+        course = self._db.exec(
+            select(CourseInDB).where(
+                CourseInDB.course_id == student.course_id,
+                CourseInDB.is_active == True
+            )
+        ).first()
         
         if not course:
             raise CourseNotFoundError()
         
         # hash given password
-        hashed_password = self.auth_service.get_password_hash(student.password)
-        
+        hashed_password = self.auth_service.get_password_hash(student.password) 
         
         # create new StudentInDB model
         new_student = StudentInDB(
