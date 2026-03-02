@@ -22,7 +22,7 @@ from app.models.course import CourseInDB
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(
-        "sqlite://", # db in-memory
+        "sqlite://", 
         connect_args={"check_same_thread": False},
         poolclass=StaticPool
     )
@@ -155,8 +155,7 @@ async def test_course_fixture(session: Session):
         total_hours=2000,
         internship_total_hours=800,
         start_date=date(2023,11,6),
-        location="ITS Umbria Academy.ITS-Scalo Merci",
-        course_id=uuid.uuid4()
+        location="ITS Umbria Academy.ITS-Scalo Merci"
     )
     
     session.add(course)

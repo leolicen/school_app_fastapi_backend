@@ -79,7 +79,7 @@ class CourseListPublic(BaseModel):
 
 
 course_trigger_ddl = DDL(
-    """ 
+    """
     CREATE TRIGGER IF NOT EXISTS before_insert_courseindb
     BEFORE INSERT ON courseindb FOR EACH ROW
     BEGIN
@@ -92,13 +92,13 @@ course_trigger_ddl = DDL(
 
 @event.listens_for(CourseInDB.__table__, "after_create")
 def create_course_trigger(target, connection, **kw):
-    
-    print(f"Tabella: {target.name}")  
+
+    print(f"Tabella: {target.name}")
     print(f"Dialect: {connection.dialect.name}")
-    
+
     if connection.dialect.name == "mysql":
         connection.execute(course_trigger_ddl)
-    
-    result = connection.execute(text("SHOW TRIGGERS LIKE 'before_insert_courseindb'"))
-    trigger = result.fetchone()
-    print(f"Trigger esiste: {trigger}")
+        result = connection.execute(text("SHOW TRIGGERS LIKE 'before_insert_courseindb'"))
+        trigger = result.fetchone()
+        print(f"Trigger esiste: {trigger}")
+
