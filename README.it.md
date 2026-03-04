@@ -203,14 +203,14 @@ school-app-fastapi-backend/
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /courses | GET | Lettura lista corsi attivi | No | - |
+| /courses/ | GET | Lettura lista corsi attivi | No | - |
 | /courses/me | GET | Lettura info corso studente | Sì | Attivo, Inattivo |
 
 ### 3. Router Internship
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /internship-agreements | GET | Lettura info accordo/i di tirocinio | Sì | Attivo, Inattivo |
+| /internship-agreements/ | GET | Lettura info accordo/i di tirocinio | Sì | Attivo, Inattivo |
 | /internship-agreements/{agreement_id}/entries | GET | Lettura info turni di tirocinio | Sì | Attivo, Inattivo |
 | /internship-agreements/{agreement_id}/entries | POST | Creazione nuovo turno di tirocinio | Sì | Attivo |
 | /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Eliminazione turno tirocinio | Sì | Attivo |
