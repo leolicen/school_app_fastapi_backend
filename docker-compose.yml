@@ -30,6 +30,8 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
@@ -60,10 +62,12 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: school_redis 
+    container_name: school_redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -78,3 +82,7 @@ services:
 networks:
   school-app-network:
     driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
