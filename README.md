@@ -225,9 +225,58 @@ school-app-fastapi-backend/
 
 ## Demo Flow
 
-When all 4 containers are up and running, follow this steps to correctly set up the environment.
+When all 4 containers are up and running, follow the next steps to correctly set up and test the environment.
 
-### 1. 
+### 1. Create a new course
+
+Open your browser and go to [phpMyAdmin](http://localhost:8080), enter your credentials (DB_USER and DB_PASSWORD in `.env`) and select 'school_app' db from the panel on your left.
+
+Open 'courseindb' table and click on 'insert'.
+
+![Create new course](/assets/screenshots/create_course.png)
+
+Fields population:
+
+- *course_type*: ❗required
+- *schedule*: ❎ optional
+- *schedule_type*: ❎ optional
+- *total_hours*: ❗required
+- *internship_total_hours*: ❗required
+- *start_date*: ❗required
+- *location*: ❗required
+- *is_active*: ⚙️ default value = 1 (True)
+- *course_id*: ⚡ automatically generated
+- *name*: ❗required
+- *created_at*: ⚡ automatically generated
+
+Open a new tab and go to the [API docs](http://localhost:8000/docs) page.
+
+Scroll to 'courses' router and select 'GET /courses/'. 
+
+Click on 'Try it out'.
+
+![Get courses list](/assets/screenshots/get_courses.png)
+
+This endpoint is public and should return a list of all active courses available (only course name and id are shown). 
+
+![Courses list](/assets/screenshots/get_courses_response.png)
+
+Copy the 'course_id' and save it somewhere.
+
+### 2. Register a new student
+
+Select 'POST /auth/register' endpoint within the 'auth' router.
+
+Click on 'Try it out' and fill in the following fields of the request body:
+
+- *name*: ❗required
+- *surname*: ❗required
+- *email*: ❗required
+- *course_id*: ❗required
+- *phone*: ❎ optional
+- *address*: ❎ optional
+- *password*: ❗required
+
 
 
 
