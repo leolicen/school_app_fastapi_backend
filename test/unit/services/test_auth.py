@@ -7,7 +7,7 @@ from app.core.settings import settings
 from app.services.auth import AuthService
 
 
-class TestGetPasswordHash():
+class TestGetPasswordHash:
     
     def test_returns_a_string(self):
         result = AuthService.get_password_hash("Secure@123")
@@ -48,7 +48,7 @@ class TestGetPasswordHash():
 
 
 
-class TestCreateAccessToken():
+class TestCreateAccessToken:
     
     def test_returns_a_string(self):
         token = AuthService.create_access_token(id= uuid.uuid4())
