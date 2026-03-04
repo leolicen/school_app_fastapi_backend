@@ -279,7 +279,7 @@ Click on 'Try it out' and fill in the following fields of the request body:
 - *address*: ❎ optional
 - *password*: ❗required (password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character)
 
-Copy email and password and save them.
+Copy email and password and save them. Save the refresh token as well, it will be useful to manually refresh the access token (expires after 15 minutes).
 
 The response should look like this:
 
@@ -298,6 +298,94 @@ Click on the green 'Authorize' button on the top right corner and enter email an
 Go to 'GET /students/me' endpoint and try to make a request.
 
 It should return something like this:
+
+![Student info](/assets/screenshots/get_student_response.png)
+
+### 4. Create new company and internship agreement
+
+Go back to [phpMyAdmin](http://localhost:8080) and open 'companyindb' table.
+
+Create a new company with the following fields:
+
+- *company_id*: ⚡ automatically generated
+- *name*: ❗required
+- *city*: ❗required
+- *address*: ❗required
+- *tutor*: ❎ optional 
+- *created_at*: ⚡ automatically generated
+
+Open the 'internshipagreementindb' table and create a new agreement with the following fields:
+
+- *total_hours*: ❗required
+- *attended_hours*: ❎ optional => automatically updated whenever a new entry is created/deleted
+- *start_date*: ❗required
+- *is_active*: ⚙️ default value = 0 (False) => set it to 1 (True) so that it is already possible to create new entries* 
+- *agreement_id*: ⚡ automatically generated
+- *student_id*: ❗required (manually select from the dropdown)
+- *company_id*: ❗required (manually select from the dropdown)
+- *created_at*: ⚡ automatically generated
+
+*Usually, a new agreement is created in advance with a future start date, until which it is not possible for the student to create new entries. The agreement automatically activates via cronjob at the start date. That is why the default value is 0 (False).
+
+Go back to the [API docs](http://localhost:8000/docs) page and execute a request to the 'GET /internship-agreements/' endpoint.
+
+A list with agreements owned by the student should be returned:
+
+![Student agreements list](/assets/screenshots/get_agreement_list_response.png)
+
+Copy the agreement_id and save it.
+
+⚠️ **Warning**: if, by now, the access token has expired (the server response is 401 - Unauthorized), you need to log in again (click on the green 'Authorize' button, logout and login again with the student credentials). Since the FastApi docs automatically save access and refresh token through the OAuth2 form, it is not possible to manually extract the refresh token and pass it to the 'POST /auth/refresh' endpoint to get a new pair. Hence, logging out and then back in is the only way of testing the flow through the docs.
+
+### 5. Create an internship entry 
+
+Create a new internship entry at 'POST /internship-agreements/{agreement_id}/entries' endpoint, passing the agreement_id as a parameter.
+The required fields are:
+
+![Create new entry](/assets/screenshots/create_entry.png)
+
+- *entry_date*: ❗required => must be previous or equal to the current date and not go back more than 7 days
+- *start_time*: ❗required 
+- *end_time*: ❗required => must be greater than the start time (obviously)
+- *shift_type*: ❗required => choose between 'in_office' or 'remote'
+- *description*: ❗required => max_length=150
+- *agreement_id*: ❗required 
+
+The response should be:
+
+![Entry creation response](/assets/screenshots/create_entry_response.png)
+
+Now check the 'GET /internship-agreements/{agreement_id}/entries' endpoint, passing in the agreement id and pressing 'execute'.
+A list of entries (just the one we created, for now) should be available:
+
+![Entries list](/assets/screenshots/get_agreem_entries.png)
+
+Copy the entry id and save it.
+
+### 6. Delete an internship entry
+
+Go to the 'DELETE /internship-agreements/{agreement_id}/entries/{entry_id}' endpoint and pass both the agreement_id and the entry_id parameters.
+
+![Delete entry](/assets/screenshots/delete_entry.png)
+
+The response is the following:
+
+![Entry deletion response](/assets/screenshots/delete_entry_response.png)
+
+Now, if you go back and check again 'GET /internship-agreements/{agreement_id}/entries' endpoint, you should find an empty list:
+
+![Empty entries list](/assets/screenshots/empty_entries_list.png) 
+
+### 7. Logout
+
+Go to the 'POST /auth/logout' endpoint in the docs and click 'execute'.
+
+![Logout](/assets/screenshots/logout.png)
+
+![Logout response](/assets/screenshots/logout%20response.png)
+
+
+
 
 
 
