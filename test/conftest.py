@@ -93,7 +93,8 @@ async def async_client_fixture(session: Session, mock_redis):
     # create async client for our app
     async with AsyncClient(
         transport=ASGITransport(app=app),
-        base_url="http://test"
+        base_url="http://test",
+        follow_redirects=True
     ) as client:
         yield client
     
@@ -104,21 +105,21 @@ async def async_client_fixture(session: Session, mock_redis):
 
 # -- TEST USER FIXTURE --
 @pytest.fixture(name="test_user")
-def test_user_fixture(session: Session):
+def test_user_fixture(session: Session, test_course: CourseInDB):
     """ Creates a test user in DB """
-    
+
     user = StudentInDB(
         name="John",
         surname="Doe",
         email="john.doe@gmail.com",
-        course_id=uuid.uuid4(),
+        course_id=test_course.course_id,
         hashed_password=AuthService.get_password_hash("!#CrediblePasSw0rd")
     )
-    
+
     session.add(user)
     session.commit()
     session.refresh(user)
-    
+
     return user
 
 
