@@ -202,14 +202,14 @@ school-app-fastapi-backend/
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /courses | GET | Read list of active courses | No | - |
+| /courses/ | GET | Read list of active courses | No | - |
 | /courses/me | GET | Read student course info | Yes | Active, Inactive |
 
 ### 3. Internship Router
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /internship-agreements | GET | Read student agreement/s info | Yes | Active, Inactive |
+| /internship-agreements/ | GET | Read student agreement/s info | Yes | Active, Inactive |
 | /internship-agreements/{agreement_id}/entries | GET | Read agreement entries | Yes | Active, Inactive |
 | /internship-agreements/{agreement_id}/entries | POST | Create new internship entry | Yes | Active |
 | /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Delete internship entry | Yes | Active |
@@ -222,6 +222,12 @@ school-app-fastapi-backend/
 | /students/me | PATCH | Update student info | Yes | Active | 
 | /students/me | DELETE | Delete student account | Yes | Active, Inactive |
 | /students/change-password | Change student pwd | POST | Yes | Active, Inactive |
+
+## Demo Flow
+
+When all 4 containers are up and running, follow this steps to correctly set up the environment.
+
+### 1. 
 
 
 
