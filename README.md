@@ -269,13 +269,39 @@ Select 'POST /auth/register' endpoint within the 'auth' router.
 
 Click on 'Try it out' and fill in the following fields of the request body:
 
+![Register student](/assets/screenshots/register_student.png)
+
 - *name*: ❗required
 - *surname*: ❗required
 - *email*: ❗required
-- *course_id*: ❗required
-- *phone*: ❎ optional
+- *course_id*: ❗required (paste your saved 'course_id' here)
+- *phone*: ❎ optional 
 - *address*: ❎ optional
-- *password*: ❗required
+- *password*: ❗required (password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character)
+
+Copy email and password and save them.
+
+The response should look like this:
+
+![registration response](/assets/screenshots/registration_response.png)
+
+### 3. Login 
+
+The registration process includes both the creation of a new student and their first login, returning access and refresh tokens as response.
+Normally, a frontend application would take this response, store both tokens and use them to make requests to the API.
+In this case, though, it is necessary to manually login through the OAuth2 form in the FastApi docs, in order to let it save the tokens and be able to use protected endpoints.
+
+Click on the green 'Authorize' button on the top right corner and enter email and password of your newly created student.
+
+![Login form](/assets/screenshots/oauth2_form.png)
+
+Go to 'GET /students/me' endpoint and try to make a request.
+
+It should return something like this:
+
+
+
+
 
 
 
