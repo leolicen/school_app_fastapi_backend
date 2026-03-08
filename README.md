@@ -280,7 +280,7 @@ Click on 'Try it out' and fill in the following fields of the request body:
 | *email* | ❗required | - |
 | *course_id* | ❗required | paste your saved 'course_id' here |
 | *phone* | ❎ optional | - |
-| *address* | ❎ optional |
+| *address* | ❎ optional | - |
 |  *password* | ❗required | password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character |
 
 Copy email and password and save them.
@@ -331,11 +331,11 @@ Open the 'internshipagreementindb' table and create a new agreement with the fol
 | *start_date* | ❗required | - |
 | *is_active* | ⚙️ default value = 0 (False) | set it to 1 (True) so that it is already possible to create new entries* |
 | *agreement_id* | ⚡ automatically generated | - |
-| *student_id* | ❗required | manually select from the dropdown |
-| *company_id* | ❗required | manually select from the dropdown |
+| *student_id* | ❗required | manually select from phpMyAdmin dropdown |
+| *company_id* | ❗required | manually select from phpMyAdmin dropdown |
 | *created_at* | ⚡ automatically generated | - |
 
-*Usually, a new agreement is created in advance with a future start date, until which it is not possible for the student to create new entries. The agreement automatically activates via cronjob at the start date. That is why the default value is 0 (False).
+> **Note:** Usually, a new agreement is created in advance with a future start date, until which it is not possible for the student to create new entries. The agreement automatically activates via cronjob at the start date. That is why the default value is 0 (False).
 
 Go back to the [API docs](http://localhost:8000/docs) page and execute a request to the 'GET /internship-agreements/' endpoint.
 
@@ -345,7 +345,7 @@ A list with agreements owned by the student should be returned:
 
 Copy the agreement_id and save it.
 
-⚠️ **Token expired?** Click 'Authorize', logout and login again. The FastAPI docs don't allow extracting the refresh token manually. 
+⚠️ **Token expired?** Click 'Authorize', logout and login again. The FastAPI docs don't allow extracting the refresh token manually (in order to refresh both tokens through the 'POST /auth/refresh' endpoint). 
 
 ### 6. Create an internship entry 
 
