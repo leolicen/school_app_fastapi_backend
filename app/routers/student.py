@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-from ..models.student import StudentPublic, StudentUpdate
 from typing import Annotated
+
+from ..models.student import StudentPublic, StudentUpdate
 from ..dependencies import get_current_student, get_current_active_student, get_student_service
 from ..services.student import StudentService
 from ..models.password import ChangePassword
