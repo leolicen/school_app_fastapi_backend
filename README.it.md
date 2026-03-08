@@ -154,6 +154,28 @@ Avvia l'applicazione (con hot-reload):
 uv run python main.py
 ```
 
+## Esecuzione dei test
+
+I test utilizzano un database SQLite in-memory e un mock di Redis — nessun servizio esterno richiesto.
+
+Esegui tutti i test:
+
+```bash
+uv run pytest
+```
+
+Esegui solo i test unitari:
+
+```bash
+uv run pytest -m unit
+```
+
+Esegui solo i test di integrazione:
+
+```bash
+uv run pytest -m integration
+```
+
 ## Struttura del progetto
 
 ```bash
@@ -177,6 +199,7 @@ school-app-fastapi-backend/
 ├── .python-version
 ├── docker-compose.yml
 ├── Dockerfile
+├── LICENSE
 ├── main.py
 ├── pyproject.toml
 ├── pytest.ini
@@ -223,6 +246,12 @@ school-app-fastapi-backend/
 | /students/me | PATCH | Aggiornamento info studente | Sì | Attivo | 
 | /students/me | DELETE | Eliminazione account studente | Sì | Attivo, Inattivo |
 | /students/change-password | POST | Modifica pwd studente | Sì | Attivo, Inattivo |
+
+## Roadmap
+
+- [ ] Collegamento a un'app Flutter che replica l'interfaccia originale
+- [ ] Aggiunta di un ruolo admin con endpoint per gestire studenti, aziende, corsi e accordi
+- [ ] Espansione della copertura dei test
 
 ## Simulazione flusso 
 
@@ -398,6 +427,10 @@ Vai all'endpoint 'POST /auth/logout' e clicca 'execute'.
 ![Risposta logout](/assets/screenshots/logout%20response.png)
 
 🎉 Hai appena completato la simulazione!
+
+## Licenza
+
+Questo progetto è distribuito con licenza [MIT](LICENSE).
 
 
 
