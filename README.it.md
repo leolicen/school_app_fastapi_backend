@@ -224,6 +224,180 @@ school-app-fastapi-backend/
 | /students/me | DELETE | Eliminazione account studente | Sì | Attivo, Inattivo |
 | /students/change-password | POST | Modifica pwd studente | Sì | Attivo, Inattivo |
 
+## Simulazione flusso 
+
+Una volta lanciati i 4 container, segui gli step successivi per configurare e utilizzare correttamente l'ambiente. 
+
+### 1. Crea un nuovo corso
+
+Apri il browser e vai su [phpMyAdmin](http://localhost:8080), inserisci le tue credenziali (DB_USER e DB_PASSWORD in `.env`) e seleziona il database 'school_app' dal pannello di sinistra.
+
+Apri la tabella 'courseindb' e clicca su 'Inserisci'.
+
+![Crea un nuovo corso](/assets/screenshots/create_course.png)
+
+Campi da popolare:
+
+| Campo | Tipo | 
+| :----- | :---- | 
+| *course_type* | ❗obbligatorio | 
+| *schedule* | ❎ opzionale | 
+| *schedule_type* | ❎ opzionale | 
+| *total_hours* | ❗obbligatorio | 
+| *internship_total_hours* | ❗obbligatorio | 
+| *start_date* |❗obbligatorio | 
+| *location* | ❗obbligatorio | 
+| *is_active* | ⚙️ default = 1 (True) | 
+| *course_id* | ⚡ generato automaticamente | 
+| *name* | ❗obbligatorio |
+| *created_at* | ⚡ generato automaticamente |
+
+Apri una nuova tab e vai su [API docs](http://localhost:8000/docs).
+
+Scorri fino al router 'courses' e seleziona 'GET /courses/'. 
+
+Clicca su 'Try it out'.
+
+![Leggi la lista dei corsi](/assets/screenshots/get_courses.png)
+
+Questo è un endpoint pubblico e dovrebbe restituire una lista di tutti i corsi attivi disponibili (vengono mostrati solo nome e id del corso). 
+
+![Lista dei corsi](/assets/screenshots/get_courses_response.png)
+
+Copia l'id del corso (course_id) e conservalo.
+
+### 2. Registra un nuovo studente
+
+Seleziona l'endpoint 'POST /auth/register' dal router 'auth'.
+
+Clicca su 'Try it out' e riempi i seguenti campi del request body:
+
+![Registra uno studente](/assets/screenshots/register_student.png)
+
+| Campo | Tipo | Note |
+| :----- | :---- | :----- |
+| *name* | ❗obbligatorio | - |
+| *surname* | ❗obbligatorio | - |
+| *email* | ❗obbligatorio | - |
+| *course_id* | ❗obbligatorio | incolla il 'course_id' copiato prima |
+| *phone* | ❎ opzionale | - |
+| *address* | ❎ opzionale | - |
+|  *password* | ❗obbligatorio | la password deve essere lunga almeno 8 caratteri e includere almeno una lettera minuscola, una lettera maiuscola, un numero e un carattere speciale |
+
+Copia email e password e conservali.
+
+La response dovrebbe essere simile a questa:
+
+![Response alla registrazione](/assets/screenshots/registration_response.png)
+
+### 3. Effettua il login 
+
+La registrazione comprende sia la creazione di un nuovo studente che il primo login, e restituisce come risposta un access token e un refresh token. 
+Solitamente, un'applicazione frontend riceverebbe questa risposta, salverebbe i due token e li userebbe per effettuare richieste alle API.
+In questo caso, però, è necessario effettuare il login manualmente attraverso il form OAuth2 all'interno della documentazione automatica di FastApi, così che sia possibile salvare i token e accedere agli endpoint protetti. 
+
+Clicca sul bottone verde 'Authorize' in alto a destra e inserisci email e password dello studente appena creato.
+
+![Form di login](/assets/screenshots/oauth2_form.png)
+
+Vai all'endpoint 'GET /students/me' e prova a effettuare una richiesta.
+
+Dovrebbe restituire qualcosa di simile:
+
+![Info studente](/assets/screenshots/get_student_response.png)
+
+### 4. Crea una nuova azienda 
+
+Torna su [phpMyAdmin](http://localhost:8080) e apri la tabella 'companyindb'.
+
+Crea una nuova azienda con i seguenti campi:
+
+| Campo | Tipo | 
+| :----- | :---- | 
+| *company_id* | ⚡ generato automaticamente |
+| *name* | ❗obbligatorio |
+| *city* | ❗obbligatorio |
+| *address* | ❗obbligatorio |
+| *tutor* | ❎ opzionale |
+| *created_at* | ⚡ generato automaticamente |
+
+### 5. Crea un nuovo accordo di tirocinio 
+
+Apri la tabella 'internshipagreementindb' e crea un nuovo accordo con i seguenti campi:
+
+| Campo | Tipo | Note |
+| :----- | :---- | :----- |
+| *total_hours* | ❗obbligatorio | - |
+| *attended_hours* | ❎ opzionale | aggiornato in automatico quando viene creato/eliminato un turno |
+| *start_date* | ❗obbligatorio | - |
+| *is_active* | ⚙️ default = 0 (False) | impostalo a 1 (True) così che sia possibile creare nuovi turni da subito* |
+| *agreement_id* | ⚡ generato automaticamente | - |
+| *student_id* | ❗obbligatorio | selezionalo dal dropdown in phpMyAdmin |
+| *company_id* | ❗obbligatorio | selezionalo dal dropdown in phpMyAdmin |
+| *created_at* | ⚡ generato automaticamente | - |
+
+> **N.B.** Di solito, un accordo si crea in anticipo con una data d'inizio futura, prima della quale lo studente non può creare nuovi turni. L'accordo si attiva automaticamente tramite un cronjob il giorno specificato in 'start_date'. Per questo motivo il valore di default è 0 (False).
+
+Torna su [API docs](http://localhost:8000/docs) e effettua una richiesta all'endpoint 'GET /internship-agreements/'.
+
+Apparirà una lista di accordi appartenenti allo studente:
+
+![Lista di accordi dello studente](/assets/screenshots/get_agreement_list_response.png)
+
+Copia l'id dell'accordo (agreement_id) e conservalo.
+
+⚠️ **Token scaduto?** Clicca 'Authorize', effettua il logout e poi di nuovo il login. Le docs FastAPI non permettono di estrarre manualmente il refresh token (per rinnovare entrambi i token tramite l'endpoint 'POST /auth/refresh'). 
+
+### 6. Crea un nuovo turno di lavoro
+
+Crea un nuovo turno di lavoro mediante l'endpoint 'POST /internship-agreements/{agreement_id}/entries', passando come parametro l'agreement_id.
+I campi richiesti sono:
+
+![Crea un nuovo turno](/assets/screenshots/create_entry.png)
+
+| Campo | Tipo | Note |
+| :----- | :---- | :----- |
+| *entry_date* | ❗obbligatorio | deve corrispondere alla data odierna o a una data non più vecchia di 7 giorni |
+| *start_time* | ❗obbligatorio | - |
+| *end_time* | ❗obbligatorio | deve essere cronologicamente successiva alla start_time |
+| *shift_type* | ❗obbligatorio | scegli fra 'in_office' e 'remote' |
+| *description* | ❗obbligatorio |  max 150 caratteri |
+| *agreement_id* | ❗obbligatorio  | - |
+
+La risposta dovrebbe essere simile a questa:
+
+![Risposta alla creazione di un turno](/assets/screenshots/create_entry_response.png)
+
+Ora torna all'endpoint 'GET /internship-agreements/{agreement_id}/entries', passa l'agreement_id come parametro e premi 'execute'.
+Una lista di turni (per il momento solo quello che abbiamo creato) dovrebbe essere visibile:
+
+![Lista di turni](/assets/screenshots/get_agreem_entries.png)
+
+Copia l'id del turno (entry_id) e conservalo.
+
+### 7. Elimina un turno di lavoro
+
+Vai all'endpoint 'DELETE /internship-agreements/{agreement_id}/entries/{entry_id}' e inserisci agreement_id e entry_id come parametri della richiesta.
+
+![Elimina turno](/assets/screenshots/delete_entry.png)
+
+La risposta dovrebbe essere la seguente:
+
+![Risposta eliminazione turno](/assets/screenshots/delete_entry_response.png)
+
+Ora, se esegui di nuovo una richiesta all'endpoint 'GET /internship-agreements/{agreement_id}/entries', dovresti ricevere una lista vuota:
+
+![Lista di turni vuota](/assets/screenshots/empty_entries_list.png) 
+
+### 8. Effettua il logout
+
+Vai all'endpoint 'POST /auth/logout' e clicca 'execute'.
+
+![Logout](/assets/screenshots/logout.png)
+
+![Risposta logout](/assets/screenshots/logout%20response.png)
+
+🎉 Hai appena completato la simulazione!
 
 
 
