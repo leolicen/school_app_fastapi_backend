@@ -153,6 +153,28 @@ Run the app (with hot-reload):
 uv run python main.py
 ```
 
+## Running Tests
+
+Tests use an in-memory SQLite database and a Redis mock — no external services required.
+
+Run all tests:
+
+```bash
+uv run pytest
+```
+
+Run only unit tests:
+
+```bash
+uv run pytest -m unit
+```
+
+Run only integration tests:
+
+```bash
+uv run pytest -m integration
+```
+
 ## Project Structure
 
 ```bash
@@ -176,6 +198,7 @@ school-app-fastapi-backend/
 ├── .python-version
 ├── docker-compose.yml
 ├── Dockerfile
+├── LICENSE
 ├── main.py
 ├── pyproject.toml
 ├── pytest.ini
@@ -222,6 +245,12 @@ school-app-fastapi-backend/
 | /students/me | PATCH | Update student info | Yes | Active | 
 | /students/me | DELETE | Delete student account | Yes | Active, Inactive |
 | /students/change-password | Change student pwd | POST | Yes | Active, Inactive |
+
+## Roadmap
+
+- [ ] Connect to a Flutter frontend app replicating the original UI
+- [ ] Add admin role with endpoints to manage students, companies, courses, and agreements
+- [ ] Expand test coverage
 
 ## Demo Flow
 
@@ -397,3 +426,7 @@ Go to the 'POST /auth/logout' endpoint in the docs and click 'execute'.
 ![Logout response](/assets/screenshots/logout%20response.png)
 
 🎉 You've just completed the full demo flow!
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
