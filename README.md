@@ -237,17 +237,19 @@ Open 'courseindb' table and click on 'insert'.
 
 Fields population:
 
-- *course_type*: ❗required
-- *schedule*: ❎ optional
-- *schedule_type*: ❎ optional
-- *total_hours*: ❗required
-- *internship_total_hours*: ❗required
-- *start_date*: ❗required
-- *location*: ❗required
-- *is_active*: ⚙️ default value = 1 (True)
-- *course_id*: ⚡ automatically generated
-- *name*: ❗required
-- *created_at*: ⚡ automatically generated
+| Field | Type | 
+| -------- | ------ | 
+| *course_type* | ❗required | 
+| *schedule* | ❎ optional | 
+| *schedule_type* | ❎ optional | 
+| *total_hours* | ❗required | 
+| *internship_total_hours* | ❗required | 
+| *start_date* |❗required | 
+| *location* | ❗required | 
+| *is_active* | ⚙️ default value = 1 (True) | 
+| *course_id* | ⚡ automatically generated | 
+| *name* | ❗required |
+| *created_at* | ⚡ automatically generated |
 
 Open a new tab and go to the [API docs](http://localhost:8000/docs) page.
 
@@ -279,13 +281,13 @@ Click on 'Try it out' and fill in the following fields of the request body:
 - *address*: ❎ optional
 - *password*: ❗required (password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character)
 
-Copy email and password and save them. Save the refresh token as well, it will be useful to manually refresh the access token (expires after 15 minutes).
+Copy email and password and save them.
 
 The response should look like this:
 
 ![registration response](/assets/screenshots/registration_response.png)
 
-### 3. Login 
+### 3. Log in 
 
 The registration process includes both the creation of a new student and their first login, returning access and refresh tokens as response.
 Normally, a frontend application would take this response, store both tokens and use them to make requests to the API.
@@ -301,7 +303,7 @@ It should return something like this:
 
 ![Student info](/assets/screenshots/get_student_response.png)
 
-### 4. Create new company and internship agreement
+### 4. Create a new company 
 
 Go back to [phpMyAdmin](http://localhost:8080) and open 'companyindb' table.
 
@@ -313,6 +315,8 @@ Create a new company with the following fields:
 - *address*: ❗required
 - *tutor*: ❎ optional 
 - *created_at*: ⚡ automatically generated
+
+### 5. Create an internship agreement
 
 Open the 'internshipagreementindb' table and create a new agreement with the following fields:
 
@@ -335,9 +339,9 @@ A list with agreements owned by the student should be returned:
 
 Copy the agreement_id and save it.
 
-⚠️ **Warning**: if, by now, the access token has expired (the server response is 401 - Unauthorized), you need to log in again (click on the green 'Authorize' button, logout and login again with the student credentials). Since the FastApi docs automatically save access and refresh token through the OAuth2 form, it is not possible to manually extract the refresh token and pass it to the 'POST /auth/refresh' endpoint to get a new pair. Hence, logging out and then back in is the only way of testing the flow through the docs.
+⚠️ **Token expired?** Click 'Authorize', logout and login again. The FastAPI docs don't allow extracting the refresh token manually. 
 
-### 5. Create an internship entry 
+### 6. Create an internship entry 
 
 Create a new internship entry at 'POST /internship-agreements/{agreement_id}/entries' endpoint, passing the agreement_id as a parameter.
 The required fields are:
@@ -362,7 +366,7 @@ A list of entries (just the one we created, for now) should be available:
 
 Copy the entry id and save it.
 
-### 6. Delete an internship entry
+### 7. Delete an internship entry
 
 Go to the 'DELETE /internship-agreements/{agreement_id}/entries/{entry_id}' endpoint and pass both the agreement_id and the entry_id parameters.
 
@@ -376,7 +380,7 @@ Now, if you go back and check again 'GET /internship-agreements/{agreement_id}/e
 
 ![Empty entries list](/assets/screenshots/empty_entries_list.png) 
 
-### 7. Logout
+### 8. Log out
 
 Go to the 'POST /auth/logout' endpoint in the docs and click 'execute'.
 
@@ -384,22 +388,4 @@ Go to the 'POST /auth/logout' endpoint in the docs and click 'execute'.
 
 ![Logout response](/assets/screenshots/logout%20response.png)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+🎉 You've just completed the full demo flow!
