@@ -238,7 +238,7 @@ Open 'courseindb' table and click on 'insert'.
 Fields population:
 
 | Field | Type | 
-| -------- | ------ | 
+| :----- | :---- | 
 | *course_type* | ❗required | 
 | *schedule* | ❎ optional | 
 | *schedule_type* | ❎ optional | 
@@ -273,13 +273,15 @@ Click on 'Try it out' and fill in the following fields of the request body:
 
 ![Register student](/assets/screenshots/register_student.png)
 
-- *name*: ❗required
-- *surname*: ❗required
-- *email*: ❗required
-- *course_id*: ❗required (paste your saved 'course_id' here)
-- *phone*: ❎ optional 
-- *address*: ❎ optional
-- *password*: ❗required (password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character)
+| Field | Type | Notes |
+| :----- | :---- | :----- |
+| *name* | ❗required | - |
+| *surname* | ❗required | - |
+| *email* | ❗required | - |
+| *course_id* | ❗required | paste your saved 'course_id' here |
+| *phone* | ❎ optional | - |
+| *address* | ❎ optional |
+|  *password* | ❗required | password must be at least 8 characters long and include at least a lowercase letter, a uppercase letter, a number and a special character |
 
 Copy email and password and save them.
 
@@ -309,25 +311,29 @@ Go back to [phpMyAdmin](http://localhost:8080) and open 'companyindb' table.
 
 Create a new company with the following fields:
 
-- *company_id*: ⚡ automatically generated
-- *name*: ❗required
-- *city*: ❗required
-- *address*: ❗required
-- *tutor*: ❎ optional 
-- *created_at*: ⚡ automatically generated
+| Field | Type | 
+| :----- | :---- | 
+| *company_id* | ⚡ automatically generated |
+| *name* | ❗required |
+| *city* | ❗required |
+| *address* | ❗required |
+| *tutor* | ❎ optional |
+| *created_at* | ⚡ automatically generated |
 
 ### 5. Create an internship agreement
 
 Open the 'internshipagreementindb' table and create a new agreement with the following fields:
 
-- *total_hours*: ❗required
-- *attended_hours*: ❎ optional => automatically updated whenever a new entry is created/deleted
-- *start_date*: ❗required
-- *is_active*: ⚙️ default value = 0 (False) => set it to 1 (True) so that it is already possible to create new entries* 
-- *agreement_id*: ⚡ automatically generated
-- *student_id*: ❗required (manually select from the dropdown)
-- *company_id*: ❗required (manually select from the dropdown)
-- *created_at*: ⚡ automatically generated
+| Field | Type | Notes |
+| :----- | :---- | :----- |
+| *total_hours* | ❗required | - |
+| *attended_hours* | ❎ optional | automatically updated whenever a new entry is created/deleted |
+| *start_date* | ❗required | - |
+| *is_active* | ⚙️ default value = 0 (False) | set it to 1 (True) so that it is already possible to create new entries* |
+| *agreement_id* | ⚡ automatically generated | - |
+| *student_id* | ❗required | manually select from the dropdown |
+| *company_id* | ❗required | manually select from the dropdown |
+| *created_at* | ⚡ automatically generated | - |
 
 *Usually, a new agreement is created in advance with a future start date, until which it is not possible for the student to create new entries. The agreement automatically activates via cronjob at the start date. That is why the default value is 0 (False).
 
@@ -348,12 +354,14 @@ The required fields are:
 
 ![Create new entry](/assets/screenshots/create_entry.png)
 
-- *entry_date*: ❗required => must be previous or equal to the current date and not go back more than 7 days
-- *start_time*: ❗required 
-- *end_time*: ❗required => must be greater than the start time (obviously)
-- *shift_type*: ❗required => choose between 'in_office' or 'remote'
-- *description*: ❗required => max_length=150
-- *agreement_id*: ❗required 
+| Field | Type | Notes |
+| :----- | :---- | :----- |
+| *entry_date* | ❗required | must be previous or equal to the current date and not go back more than 7 days |
+| *start_time* | ❗required | - |
+| *end_time* | ❗required | must be greater than the start time |
+| *shift_type* | ❗required | choose between 'in_office' or 'remote' |
+| *description* | ❗required |  max_length=150 |
+| *agreement_id* | ❗required  | - |
 
 The response should be:
 
