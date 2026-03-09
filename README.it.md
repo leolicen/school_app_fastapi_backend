@@ -35,6 +35,8 @@ Azioni possibili:
 #### Sviluppo locale 
 Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a MySQL e Redis)
 
+---
+
 ## Caratteristiche principali
 
 - 🔐 **Autenticazione JWT** => login, autenticazione e logout con:
@@ -60,6 +62,8 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 - 🧪 **Test** con Pytest
 - 📚 **Auto-documentazione** con FastApi /docs & /redoc
 - 🐳 **Docker Compose** => stack di 4 container Docker (app FastAPI + MySQL + phpMyAdmin + Redis)
+
+---
 
 ## Avvio rapido
 
@@ -138,6 +142,8 @@ docker-compose up -d
 - **phpMyAdmin**: http://localhost:8080 (usa le tue credenziali MySQL per effettuare il login)
 - **Redis**: http://localhost:6379
 
+---
+
 ## Sviluppo locale (No Docker)
 
 ⚠️ **Attenzione**: l'applicazione funziona senza Docker, ma **richiede MySQL 
@@ -161,6 +167,8 @@ Avvia l'applicazione (con hot-reload):
 uv run python main.py
 ```
 
+---
+
 ## Esecuzione dei test
 
 I test utilizzano un database SQLite in-memory e un mock di Redis — nessun servizio esterno richiesto.
@@ -182,6 +190,8 @@ Esegui solo i test di integrazione:
 ```bash
 uv run pytest -m integration
 ```
+
+---
 
 ## Struttura del progetto
 
@@ -215,6 +225,8 @@ school-app-fastapi-backend/
 └── uv.lock
 
 ```
+
+---
 
 ## Endpoint API
 
@@ -254,11 +266,15 @@ school-app-fastapi-backend/
 | /students/me | DELETE | Eliminazione account studente | Sì | Attivo, Inattivo |
 | /students/change-password | POST | Modifica pwd studente | Sì | Attivo, Inattivo |
 
+---
+
 ## Roadmap
 
 - [ ] Collegamento a un'app Flutter che replica l'interfaccia originale
 - [ ] Aggiunta di un ruolo admin con endpoint per gestire studenti, aziende, corsi e accordi
 - [ ] Espansione della copertura dei test
+
+---
 
 ## Simulazione flusso 
 
@@ -434,6 +450,8 @@ Vai all'endpoint 'POST /auth/logout' e clicca 'execute'.
 ![Risposta logout](/assets/screenshots/logout%20response.png)
 
 🎉 Hai appena completato la simulazione!
+
+---
 
 ## Licenza
 
