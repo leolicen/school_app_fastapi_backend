@@ -1,12 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import OAuth2PasswordBearer
 
 from ..models.student import StudentPublic, StudentUpdate
 from ..dependencies import get_current_student, get_current_active_student, get_student_service
 from ..services.student import StudentService
 from ..models.password import ChangePassword
+from ..core.rate_limiting import limiter
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -51,7 +52,9 @@ async def delete_account(
 # protected (within the app => student account)
 # depends from get_current_student => ANY STUDENT (active & inactive) => anybody can modify their password
 @router.post("/change-password", status_code=status.HTTP_200_OK, response_model=dict[str, str])
+@limiter.limit("5/15minute")
 def change_password(
+    request: Request,
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
     student_service: Annotated[StudentService, Depends(get_student_service)],
     pwd_data: ChangePassword
