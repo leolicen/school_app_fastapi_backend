@@ -11,26 +11,25 @@ from .guid import GUID
 if TYPE_CHECKING:
     from .internship_agreement import InternshipAgreementInDB
 
-# -- COMPANY IN DB -- (table)
+
 class CompanyInDB(SQLModel, table=True):
-    """ 
+    """
     Model that simulates a real-world data management scenario by a admin/tutor.
-    It also allows to retrieve the company name from InternshipAgreement table with a 'join' query. 
-    
+    It also allows to retrieve the company name from InternshipAgreement table with a 'join' query.
     """
     company_id: uuid.UUID = Field(
         sa_column=Column(
             "company_id",
-            GUID(), # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
+            GUID(),  # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
             primary_key=True,
-            default=uuid.uuid4 # just in case the record was created Python-side (e.g. during TESTS)
+            default=uuid.uuid4  # just in case the record was created Python-side (e.g. during TESTS)
         )
-    ) 
+    )
     name: str = Field(max_length=50, unique=True, index=True)
     city: str = Field(max_length=50, index=True)
     address: str = Field(max_length=50)
     tutor: Optional[str] = Field(max_length=40, default=None)
-    
+
     # creation date & time for log/audit
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -39,15 +38,14 @@ class CompanyInDB(SQLModel, table=True):
             server_default=text("CURRENT_TIMESTAMP"),
             nullable=False
         )
-        ) 
-  
-    # RELATIONSHIPS
+    )
+
+    # relationships
     internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="company")
-    
-    
-    
+
+
 company_trigger_ddl = DDL(
-    """ 
+    """
     CREATE TRIGGER IF NOT EXISTS before_insert_companyindb
     BEFORE INSERT ON companyindb FOR EACH ROW
     BEGIN
@@ -58,12 +56,12 @@ company_trigger_ddl = DDL(
     """
 )
 
+
 @event.listens_for(CompanyInDB.__table__, "after_create")
 def create_company_trigger(target, connection, **kw):
-    
-    print(f"Tabella: {target.name}")  
+
+    print(f"Tabella: {target.name}")
     print(f"Dialect: {connection.dialect.name}")
-    
+
     if connection.dialect.name == "mysql":
         connection.execute(company_trigger_ddl)
-    
