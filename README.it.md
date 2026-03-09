@@ -1,6 +1,6 @@
 
 # School-app Fastapi Backend
-
+---
 > Semplice backend di API REST per l'applicazione di un corso post diploma con gestione dei tirocini
 
 Italian | [English](README.md)
@@ -21,6 +21,8 @@ Progetto personale per imparare le logiche di sviluppo backend, replicando il fu
 per tener traccia di un tirocinio svolto durante un corso IT post diploma. In futuro sarà collegata 
 a un'applicazione Flutter che, a sua volta, cerca di replicarne l'interfaccia grafica.
 
+<br>
+
 #### Obiettivo principale  
 Studenti gestiscono tirocini come parte di un corso tecnico post diploma.  
 Azioni possibili:
@@ -28,9 +30,13 @@ Azioni possibili:
 - registrazione/visualizzazione/eliminazione turni di lavoro
 - gestione dati personali 
 
+<br>
+
 #### Funzionamento
 - **Dati statici** [aziende, corsi, accordi di tirocinio] => creati manualmente nel database (con phpMyAdmin)
 - **Dati dinamici** [studenti, turni di lavoro, token] => gestiti da endpoint API
+
+<br>
 
 #### Sviluppo locale 
 Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a MySQL e Redis)
@@ -67,11 +73,15 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 
 ## Avvio rapido
 
+<br>
+
 ### Prerequisiti
 
 - Docker 20.10+ con plugin Docker Compose:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: pacchetti 'docker' + 'docker compose' 
+
+<br>
 
 ### 1. Clonazione repo & set-up dell'ambiente 
 
@@ -117,6 +127,8 @@ DB_NAME=myapp_db
 
 Fai lo stesso per tutte le variabili commentate. Naturalmente, puoi modificare anche i valori già impostati (es. DB_NAME).
 
+<br>
+
 ### 2. Password-reset tramite email (Facoltativo)
 
 L'applicazione usa Resend per permettere all'utente di resettare la propria password tramite email.
@@ -128,6 +140,8 @@ Se vuoi utilizzare questo servizio, [crea un account Resend](https://resend.com/
 
 Aggiorna il file `.env` con l'API key di Resend e il dominio che vuoi utilizzare.
 
+<br>
+
 ### 3. Lancia i container 
 
 Lancia lo stack completo dalla cartella root del progetto:
@@ -135,6 +149,8 @@ Lancia lo stack completo dalla cartella root del progetto:
 ```bash
 docker-compose up -d
 ```
+
+<br>
 
 ### 4. Accedi all'applicazione
 
@@ -149,6 +165,8 @@ docker-compose up -d
 ⚠️ **Attenzione**: l'applicazione funziona senza Docker, ma **richiede MySQL 
 e Redis attivi** separatamente (credenziali nel file '.env').
 
+<br>
+
 ### 1. Setup uv 
 
 Installa uv (se necessario): [installazione uv](https://docs.astral.sh/uv/getting-started/installation/).
@@ -158,6 +176,8 @@ Scarica le dipendenze del progetto:
 ```bash
 uv sync
 ```
+
+<br>
 
 ### 2. Avvia la app
 
@@ -230,6 +250,8 @@ school-app-fastapi-backend/
 
 ## Endpoint API
 
+<br>
+
 ### 1. Router Auth
 
 | Endpoint | Metodo | Descrizione | Auth | 
@@ -241,12 +263,16 @@ school-app-fastapi-backend/
 | /auth/refresh | POST | Refresh di access & refresh token | Sì |
 | /auth/logout | POST | Logout JWT | Sì |
 
+<br>
+
 ### 2. Router Course
 
 | Endpoint | Metodo | Descrizione | Auth | Account attivo/inattivo |
 | -------- | ------ | ----------- | ---- | ----------------------- |
 | /courses/ | GET | Lettura lista corsi attivi | No | - |
 | /courses/me | GET | Lettura info corso studente | Sì | Attivo, Inattivo |
+
+<br>
 
 ### 3. Router Internship
 
@@ -256,6 +282,8 @@ school-app-fastapi-backend/
 | /internship-agreements/{agreement_id}/entries | GET | Lettura info turni di tirocinio | Sì | Attivo, Inattivo |
 | /internship-agreements/{agreement_id}/entries | POST | Creazione nuovo turno di tirocinio | Sì | Attivo |
 | /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Eliminazione turno tirocinio | Sì | Attivo |
+
+<br>
 
 ### 4. Router Student
 
@@ -279,6 +307,8 @@ school-app-fastapi-backend/
 ## Simulazione flusso 
 
 Una volta lanciati i 4 container, segui gli step successivi per configurare e utilizzare correttamente l'ambiente. 
+
+<br>
 
 ### 1. Crea un nuovo corso
 
@@ -318,6 +348,8 @@ Questo è un endpoint pubblico e dovrebbe restituire una lista di tutti i corsi 
 
 Copia l'id del corso (course_id) e conservalo.
 
+<br>
+
 ### 2. Registra un nuovo studente
 
 Seleziona l'endpoint 'POST /auth/register' dal router 'auth'.
@@ -342,6 +374,8 @@ La response dovrebbe essere simile a questa:
 
 ![Response alla registrazione](/assets/screenshots/registration_response.png)
 
+<br>
+
 ### 3. Effettua il login 
 
 La registrazione comprende sia la creazione di un nuovo studente che il primo login, e restituisce come risposta un access token e un refresh token. 
@@ -358,6 +392,8 @@ Dovrebbe restituire qualcosa di simile:
 
 ![Info studente](/assets/screenshots/get_student_response.png)
 
+<br>
+
 ### 4. Crea una nuova azienda 
 
 Torna su [phpMyAdmin](http://localhost:8080) e apri la tabella 'companyindb'.
@@ -372,6 +408,8 @@ Crea una nuova azienda con i seguenti campi:
 | *address* | ❗obbligatorio |
 | *tutor* | ❎ opzionale |
 | *created_at* | ⚡ generato automaticamente |
+
+<br>
 
 ### 5. Crea un nuovo accordo di tirocinio 
 
@@ -400,6 +438,8 @@ Copia l'id dell'accordo (agreement_id) e conservalo.
 
 ⚠️ **Token scaduto?** Clicca 'Authorize', effettua il logout e poi di nuovo il login. Le docs FastAPI non permettono di estrarre manualmente il refresh token (per rinnovare entrambi i token tramite l'endpoint 'POST /auth/refresh'). 
 
+<br>
+
 ### 6. Crea un nuovo turno di lavoro
 
 Crea un nuovo turno di lavoro mediante l'endpoint 'POST /internship-agreements/{agreement_id}/entries', passando come parametro l'agreement_id.
@@ -427,6 +467,8 @@ Una lista di turni (per il momento solo quello che abbiamo creato) dovrebbe esse
 
 Copia l'id del turno (entry_id) e conservalo.
 
+<br>
+
 ### 7. Elimina un turno di lavoro
 
 Vai all'endpoint 'DELETE /internship-agreements/{agreement_id}/entries/{entry_id}' e inserisci agreement_id e entry_id come parametri della richiesta.
@@ -440,6 +482,8 @@ La risposta dovrebbe essere la seguente:
 Ora, se esegui di nuovo una richiesta all'endpoint 'GET /internship-agreements/{agreement_id}/entries', dovresti ricevere una lista vuota:
 
 ![Lista di turni vuota](/assets/screenshots/empty_entries_list.png) 
+
+<br>
 
 ### 8. Effettua il logout
 
