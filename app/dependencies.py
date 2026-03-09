@@ -1,21 +1,21 @@
+import logging
 import uuid
+from typing import Annotated
+
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 import jwt
-import logging
-from typing import Annotated
-from fastapi import Depends
 from jwt import InvalidTokenError
 
-from app.services.auth import AuthService
 from .core.database import SessionDep
+from .core.redis import RedisDep
 from .core.settings import settings
-from .services.student import StudentService 
+from .exceptions.exceptions import InactiveStudentError
 from .models.student import StudentPublic
+from .services.auth import AuthService
 from .services.course import CourseService
 from .services.internship import InternshipService
-from .exceptions.exceptions import InactiveStudentError
-from .services.auth import AuthService
-from .core.redis import RedisDep
+from .services.student import StudentService
 
 
 logger = logging.getLogger(__name__)

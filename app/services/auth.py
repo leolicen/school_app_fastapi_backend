@@ -1,16 +1,17 @@
-from datetime import datetime, timedelta, timezone
-import uuid
-import jwt
-from pwdlib import PasswordHash
-from sqlalchemy.exc import SQLAlchemyError
-import redis.asyncio as redis
 import logging
 import secrets
+import uuid
+from datetime import datetime, timedelta, timezone
+
+import jwt
+from pwdlib import PasswordHash
 from pydantic import EmailStr
+import redis.asyncio as redis
+from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import delete, Session, select
 
 from ..models.student import StudentInDB
-from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken, RefreshRequest
+from ..models.auth import AccessTokenData, ResetTokenInDB, RefreshTokenInDB, AccessRefreshToken
 from ..core.settings import settings
 from ..utils.validators import normalize_email
 from ..utils.hash_reset_token import hash_reset_token

@@ -1,4 +1,5 @@
 from typing import Annotated, List
+
 from fastapi import APIRouter, Depends
 
 from ..models.course import CoursePublic, CourseListPublic

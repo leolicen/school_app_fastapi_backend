@@ -3,14 +3,16 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 import jwt
+import logging
+from jwt import InvalidTokenError
+
 from .exceptions import (
     AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
     StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, 
     MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, 
     InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, 
     InternshipEntryNotDeletableError, InactiveStudentError)
-import logging
-from jwt import InvalidTokenError
+
 
 
 logger = logging.getLogger(__name__)

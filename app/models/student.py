@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
-from sqlmodel import SQLModel, Field, Relationship
-from pydantic import EmailStr, field_validator
 import uuid
+
+from pydantic import EmailStr, field_validator
 from sqlalchemy import Column, DateTime, ForeignKey, func
+from sqlmodel import SQLModel, Field, Relationship
 
 from ..utils.validators import strong_password_validator, normalize_email
 from .guid import GUID

@@ -1,5 +1,6 @@
-from httpx import AsyncClient
 import logging
+
+from httpx import AsyncClient
 
 from app.models.student import StudentInDB
 

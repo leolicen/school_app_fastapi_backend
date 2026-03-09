@@ -1,5 +1,6 @@
-from httpx import AsyncClient
 import logging
+
+from httpx import AsyncClient
 
 from app.utils.json_printer import print_json_response
 

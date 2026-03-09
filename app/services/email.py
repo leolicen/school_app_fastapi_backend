@@ -1,6 +1,8 @@
-import resend
-from app.core.settings import settings
 import logging
+
+import resend
+
+from ..core.settings import settings
 
 logger = logging.getLogger(__name__)
 

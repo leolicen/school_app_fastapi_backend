@@ -1,12 +1,14 @@
-from typing import Annotated, List
+import logging
 import uuid
+from typing import Annotated, List
+
 from fastapi import APIRouter, Depends, Request
+
 from ..models.internship_agreement import InternshipAgreementPublic
 from ..models.student import StudentPublic
 from ..dependencies import get_internship_service, get_current_student, get_current_active_student
 from ..services.internship import InternshipService
 from ..models.internship_entry import InternshipEntryPublic, InternshipEntryCreate
-import logging
 from ..exceptions.exceptions import AgreementForbiddenError, AgreementEntryMismatchError
 
 logger = logging.getLogger(__name__)

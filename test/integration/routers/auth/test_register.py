@@ -1,6 +1,7 @@
-import uuid
-from httpx import AsyncClient
 import logging
+import uuid
+
+from httpx import AsyncClient
 
 from app.models.course import CourseInDB
 from app.utils.json_printer import print_json_response

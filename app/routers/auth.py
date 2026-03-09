@@ -1,8 +1,10 @@
-import uuid
 import logging
-from fastapi import APIRouter, Depends, BackgroundTasks, Request, status
+import uuid
 from typing import Annotated
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+
 from ..core.database import SessionDep
 from ..models.auth import AccessRefreshToken
 from ..models.password import ResetPasswordRequest, ResetPwdData
@@ -12,7 +14,6 @@ from ..models.student import StudentCreate
 from ..core.rate_limiting import limiter
 from ..services.auth import AuthService
 from ..models.auth import RefreshRequest
-
 from ..exceptions.exceptions import MissingRefreshTokenError
 
 
