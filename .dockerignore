@@ -1,7 +1,7 @@
-# Non copiare il .env nell'immagine (le variabili vengono passate da docker-compose)
+# do not copy .env file to container image (vars are passed by docker-compose)
 .env
 
-# Files non necessari
+# unnecessary files
 .git
 .venv
 .pytest_cache
