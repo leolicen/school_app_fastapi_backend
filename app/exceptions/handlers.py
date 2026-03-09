@@ -1,27 +1,28 @@
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from fastapi.encoders import jsonable_encoder
-import jwt
 import logging
+
+import jwt
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from jwt import InvalidTokenError
 
 from .exceptions import (
-    AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
-    StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError, 
-    MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError, 
-    InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError, 
+    AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError,
+    StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError,
+    MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError,
+    InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError,
     InternshipEntryNotDeletableError, InactiveStudentError)
-
 
 
 logger = logging.getLogger(__name__)
 
-# -- APP ERROR -- default handler for all app errors
+
+# default handler for all app errors
 def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-    
-    logger.error(f"{exc.code} - {exc.message} at {request.url}", exc_info=True) # exc_info=True shows complete traceback
-    
+
+    logger.error(f"{exc.code} - {exc.message} at {request.url}", exc_info=True)  # exc_info=True shows complete traceback
+
     status_code = {
         "AGREEMENT_MISMATCH": 400,
         "INTERNSHIP_COMPLETED": 400,
@@ -42,47 +43,41 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         "ACCOUNT_EXPIRED": 410,
         "INTERNAL_ERROR": 500,
         "DATABASE_ERROR": 503
-    }.get(exc.code, 400) # gets status_code["exc.code"] value, if key exists, otherwise default 400 
-    
+    }.get(exc.code, 400)  # gets status_code["exc.code"] value, if key exists, otherwise default 400
+
     return JSONResponse(
         status_code=status_code,
-        content= {
-            "error": {"code": exc.code, "message": exc.message}
-            }
+        content={"error": {"code": exc.code, "message": exc.message}}
     )
 
 
-
-    
-# -- INVALID CREDENTIALS --
 def invalid_credentials_handler(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
-    
+
     logger.warning(f"Invalid login at {request.url}")
-    
+
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
         content={"error": {"code": exc.code, "message": exc.message}},
-        headers={"WWW-Authenticate": "Bearer"} # tells the client to authenticate via bearer token
+        headers={"WWW-Authenticate": "Bearer"}  # tells the client to authenticate via bearer token
     )
-    
 
 
-# -- PyJWTError -- base class =>  catches everything (false signature, wrong secret key, wrong algorithm) => server error
+# base class => catches everything (false signature, wrong secret key, wrong algorithm) => server error
 def pyjwt_error_handler(request: Request, exc: jwt.PyJWTError) -> JSONResponse:
-    
+
     logger.critical(f"PyJWTError at {request.url}: {exc}")
-    
+
     return JSONResponse(
         status_code=500,
         content={"error": {"code": "INTERNAL_ERROR", "message": "Internal server error"}}
-        )
+    )
 
-    
-# -- INVALID ACCESS TOKEN -- PyJWTError subclass  => catches invalid tokens only (false signature, decode fail, exp) => client error
+
+# PyJWTError subclass => catches invalid tokens only (false signature, decode fail, exp) => client error
 def invalid_access_token_handler(request: Request, exc: InvalidTokenError) -> JSONResponse:
-    
+
     logger.warning(f"JWT InvalidTokenError at {request.url}: {exc}")
-    
+
     return JSONResponse(
         status_code=401,
         content={"error": {"code": "INVALID_ACCESS_TOKEN", "message": "Invalid access token"}},
@@ -90,178 +85,166 @@ def invalid_access_token_handler(request: Request, exc: InvalidTokenError) -> JS
     )
 
 
-
-# -- ACCOUNT EXPIRED --
 def account_expired_handler(request: Request, exc: AccountExpiredError) -> JSONResponse:
-    
+
     logger.warning(f"Account retrieval period expired at {request.url} - {exc.message}")
-    
+
     return JSONResponse(
-        status_code=status.HTTP_410_GONE, # target resource permanently deleted,
+        status_code=status.HTTP_410_GONE,  # target resource permanently deleted
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# -- DUPLICATE EMAIL --
+
 def duplicate_email_handler(request: Request, exc: DuplicateEmailError) -> JSONResponse:
-    
+
     logger.warning(f"Duplicate email at {request.url} - {exc.message}")
-    
+
     return JSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# -- DATABASE ERROR --
+
 def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse:
-    
+
     logger.warning(f"Database error at {request.url}: {exc.message}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# -- STUDENT NOT FOUND --
+
 def student_not_found_handler(request: Request, exc: StudentNotFoundError) -> JSONResponse:
-    
+
     logger.warning(f"Student not found at {request.url}: {exc.message}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND, 
+        status_code=status.HTTP_404_NOT_FOUND,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-# -- INACTIVE STUDENT --
+
+
 def inactive_student_handler(request: Request, exc: InactiveStudentError) -> JSONResponse:
-    
+
     logger.warning(f"Inactive student access at {request.url}: {exc.message}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN, 
+        status_code=status.HTTP_403_FORBIDDEN,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# -- INVALID CURRENT PASSWORD --
+
 def invalid_current_password_handler(request: Request, exc: InvalidCurrentPasswordError) -> JSONResponse:
-    
+
     logger.warning(f"Current password is not correct at {request.url}: {exc.message}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN, 
+        status_code=status.HTTP_403_FORBIDDEN,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# -- INVALID RESET TOKEN --
+
 def invalid_reset_token_handler(request: Request, exc: InvalidResetTokenError) -> JSONResponse:
-    
+
     logger.warning(f"Invalid/expired reset token at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, 
+        status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-    
-# -- INVALID REFRESH TOKEN --
+
+
 def invalid_refresh_token_handler(request: Request, exc: InvalidRefreshTokenError) -> JSONResponse:
-    
+
     logger.warning(f"Invalid/expired refresh token at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED, 
+        status_code=status.HTTP_401_UNAUTHORIZED,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-    
-# -- MISSING REFRESH TOKEN --
+
+
 def missing_refresh_token_handler(request: Request, exc: MissingRefreshTokenError) -> JSONResponse:
-    
+
     logger.warning(f"Missing refresh token at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED, 
+        status_code=status.HTTP_401_UNAUTHORIZED,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-# -- COURSE NOT FOUND --
+
+
 def course_not_found_handler(request: Request, exc: CourseNotFoundError) -> JSONResponse:
-    
+
     logger.warning(f"Course not found at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND, 
+        status_code=status.HTTP_404_NOT_FOUND,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
 
-# --AGREEMENT FORBIDDEN --
+
 def agreement_forbidden_handler(request: Request, exc: AgreementForbiddenError) -> JSONResponse:
-    
+
     logger.warning(f"Agreement forbidden at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN, 
+        status_code=status.HTTP_403_FORBIDDEN,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-# --AGREEMENT MISMATCH --
+
+
 def agreement_mismatch_handler(request: Request, exc: AgreementEntryMismatchError) -> JSONResponse:
-    
+
     logger.warning(f"Agreement mismatch at {request.url}", exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, 
+        status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-# --INTERNSHIP COMPLETED --
+
+
 def internship_completed_handler(request: Request, exc: InternshipCompletedError) -> JSONResponse:
-    
+
     logger.warning(f"Internship completed access at {request.url}", extra={"code": exc.code}, exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, 
+        status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
-# --INTERNSHIP HOURS EXCEEDED --
+
+
 def internship_hours_exceeded_handler(request: Request, exc: InternshipHoursExceededError) -> JSONResponse:
-    
+
     logger.warning(f"Attempt to register exceeding hours at {request.url}", extra={"code": exc.code}, exc_info=True)
-    
+
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, 
+        status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": {"code": exc.code, "message": exc.message}}
     )
-    
 
-# --INTERNSHIP OVERLAPPING ENTRY --
+
 def internship_overlapping_entry_handler(request: Request, exc: InternshipOverlappingEntryError) -> JSONResponse:
-    
-    logger.warning(f"Internship entry overlap at {request.url}", extra={"code": exc.code}, exc_info=True)
-    
-    return JSONResponse(
-        status_code=status.HTTP_409_CONFLICT, 
-        content={"error": {"code": exc.code, "message": exc.message}}
-    )
-    
-    
-# --INTERNSHIP ENTRY NOT DELETABLE --
-def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntryNotDeletableError) -> JSONResponse:
-    
-    logger.warning(f"Internship entry delete denied at {request.url}", extra={"code": exc.code}, exc_info=True)
-    
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND, 
-        content={"error": {"code": exc.code, "message": exc.message}}
-    )
-    
 
-# -- REQUEST VALIDATION --
+    logger.warning(f"Internship entry overlap at {request.url}", extra={"code": exc.code}, exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+
+
+def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntryNotDeletableError) -> JSONResponse:
+
+    logger.warning(f"Internship entry delete denied at {request.url}", extra={"code": exc.code}, exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+
+
 async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
 
     filtered_errors = [e for e in exc.errors() if e['loc'][-1] not in ('args', 'kwargs')]
@@ -283,9 +266,6 @@ async def request_validation_handler(request: Request, exc: RequestValidationErr
     )
 
 
-
-
-# -- SETUP HANDLERS --
 def setup_handlers(app: FastAPI):
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(InvalidCredentialsError, invalid_credentials_handler)
