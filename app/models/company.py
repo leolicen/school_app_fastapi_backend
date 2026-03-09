@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
-from sqlmodel import Relationship, SQLModel, Field
 import uuid
+
+from sqlmodel import Relationship, SQLModel, Field
 from sqlalchemy import Column, DateTime, text, event, DDL
 
 from .guid import GUID

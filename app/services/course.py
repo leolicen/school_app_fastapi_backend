@@ -1,7 +1,8 @@
-from typing import List, Sequence, Tuple
-import uuid
-from sqlmodel import Session, select
 import logging
+import uuid
+from typing import List, Sequence, Tuple
+
+from sqlmodel import Session, select
 
 from ..models.course import CourseInDB, CoursePublic, CourseListPublic
 from ..exceptions.exceptions import CourseNotFoundError

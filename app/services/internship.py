@@ -1,10 +1,11 @@
+import logging
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Sequence, List, Tuple
-import uuid
+from typing import List, Sequence, Tuple
+
 from sqlalchemy import and_, exists
 from sqlmodel import Session, select
-import logging
 
 from ..models.internship_agreement import InternshipAgreementInDB, InternshipAgreementPublic
 from ..models.student import StudentPublic

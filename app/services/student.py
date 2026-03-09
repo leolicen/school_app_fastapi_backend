@@ -1,8 +1,10 @@
+import logging
 import uuid
+from datetime import datetime, timedelta, timezone
+
 from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
-import logging
 from pymysql import IntegrityError
 import redis.asyncio as redis
 from pydantic import EmailStr
@@ -10,18 +12,23 @@ from sqlalchemy import delete, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 
-from app.core.settings import settings
-from ..models.auth import AccessRefreshToken, ResetTokenInDB, RefreshTokenInDB
-from ..models.password import ChangePassword
-from ..utils.validators import normalize_email
-from .email import EmailService
-from datetime import datetime, timedelta, timezone
-from ..exceptions.exceptions import (InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError, 
-                                     StudentNotFoundError, InvalidCurrentPasswordError, CourseNotFoundError)
-
-from ..models.student import StudentCreate, StudentPublic, StudentInDB, StudentUpdate
+from ..core.settings import settings
+from ..exceptions.exceptions import (
+    AccountExpiredError,
+    CourseNotFoundError,
+    DatabaseError,
+    DuplicateEmailError,
+    InvalidCredentialsError,
+    InvalidCurrentPasswordError,
+    StudentNotFoundError,
+)
+from ..models.auth import AccessRefreshToken, RefreshTokenInDB, ResetTokenInDB
 from ..models.course import CourseInDB
+from ..models.password import ChangePassword
+from ..models.student import StudentCreate, StudentInDB, StudentPublic, StudentUpdate
+from ..utils.validators import normalize_email
 from .auth import AuthService
+from .email import EmailService
 
 
 

@@ -1,4 +1,5 @@
 from typing import Self
+
 from sqlmodel import Field
 from pydantic import BaseModel, EmailStr, field_validator, model_validator
 

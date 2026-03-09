@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, List, Optional
-from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from sqlalchemy import Boolean, DateTime, Column, ForeignKey, UniqueConstraint, text, event, DDL
+from typing import TYPE_CHECKING, List, Optional
 import uuid
+
+from sqlalchemy import Boolean, DateTime, Column, ForeignKey, UniqueConstraint, text, event, DDL
+from sqlmodel import Relationship, SQLModel, Field
 
 from .guid import GUID
 

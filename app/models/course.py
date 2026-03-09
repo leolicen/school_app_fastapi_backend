@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, List, Optional
-from pydantic import BaseModel
-from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime, timezone
+from typing import TYPE_CHECKING, List, Optional
 import uuid
+
+from pydantic import BaseModel
 from sqlalchemy import Boolean, Column, DateTime, text, event, DDL
+from sqlmodel import SQLModel, Field, Relationship
 
 from .guid import GUID
 

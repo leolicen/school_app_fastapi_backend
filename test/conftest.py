@@ -1,12 +1,12 @@
 from datetime import date
-import uuid
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import CheckConstraint
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
-from unittest.mock import AsyncMock
-from httpx import ASGITransport, AsyncClient
 
 import app.models # only loads models into SQLModel.metadata so that all tables can be created with create_all
 from app.app import app

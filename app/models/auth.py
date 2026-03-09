@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 import uuid
+
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, DateTime, func
 from sqlmodel import SQLModel, Relationship, Field
-from typing import TYPE_CHECKING, Optional
-from datetime import datetime
 
 
 if TYPE_CHECKING:

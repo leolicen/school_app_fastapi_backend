@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING, Optional
-from pydantic import field_validator, ValidationInfo
-from sqlmodel import Relationship, SQLModel, Field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
+from typing import TYPE_CHECKING, Optional
 import uuid
+
+from pydantic import field_validator, ValidationInfo
 from sqlalchemy import Column, DateTime, UniqueConstraint, func
+from sqlmodel import Relationship, SQLModel, Field
 
 if TYPE_CHECKING:
     from .internship_agreement import InternshipAgreementInDB
