@@ -11,8 +11,6 @@ def strong_password_validator(v: str) -> str:
     return v
 
 
-
-
 def passwords_match_validator(self: Self) -> Self:
     if self.new_pwd_confirm != self.new_pwd:
         raise ValueError("New passwords do not match")
@@ -22,5 +20,3 @@ def passwords_match_validator(self: Self) -> Self:
 def normalize_email(v: str) -> str:
     if isinstance(v, str):
         return v.lower().strip()
-
-
