@@ -21,6 +21,8 @@ Personal project to learn backend development, replicating the logic of a real i
 a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
 one I actually used.
 
+<br>
+
 #### Main goal
 Students manage internships as part of a technical post-diploma course.
 They can:
@@ -28,9 +30,13 @@ They can:
 - register/visualize/delete shifts
 - manage personal data
 
+<br>
+
 #### How it works
 - **Static data** [companies, courses, internship agreements] => manually created in DB (through phpMyAdmin)
 - **Dynamic data** [students, internship entries (shifts), tokens] => handled by API endpoints
+
+<br>
 
 #### Local-only  
 4-containers Docker stack (or uv run with separate MySQL and Redis)
@@ -67,11 +73,15 @@ They can:
 
 ## Quick Start
 
+<br>
+
 ### Prerequisites
 
 - Docker 20.10+ with Docker Compose plugin:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: 'docker' + 'docker compose' packages
+
+<br>
 
 ### 1. Clone & environment set-up
 
@@ -117,6 +127,8 @@ DB_NAME=myapp_db
 
 Do the same for all commented variables. You can, of course, modify existing values as well (e.g. DB_NAME).
 
+<br>
+
 ### 2. Password-reset via email (Optional)
 
 The app makes use of Resend to allow users to reset their password by email.
@@ -128,6 +140,8 @@ in `.env`). Please note that the test domain only works with the address used du
 
 Update `.env` file with resend API key and the domain you would like to use.
 
+<br>
+
 ### 3. Launch docker containers
 
 Launch the full stack from the project's root folder:
@@ -135,6 +149,8 @@ Launch the full stack from the project's root folder:
 ```bash
 docker-compose up -d
 ```
+
+<br>
 
 ### 4. Access application
 
@@ -148,6 +164,8 @@ docker-compose up -d
 
 ⚠️ **Warning**: the application runs without Docker, but still **requires separate MySQL 
 and Redis** (using '.env' credentials).
+
+<br>
 
 ### 1. uv Setup
 
@@ -229,6 +247,8 @@ school-app-fastapi-backend/
 
 ## API Endpoints
 
+<br>
+
 ### 1. Auth Router
 
 | Endpoint | Method | Description | Auth | 
@@ -240,12 +260,16 @@ school-app-fastapi-backend/
 | /auth/refresh | POST | Refresh access & refresh tokens | Yes |
 | /auth/logout | POST | Logout JWT | Yes |
 
+<br>
+
 ### 2. Course Router
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
 | /courses/ | GET | Read list of active courses | No | - |
 | /courses/me | GET | Read student course info | Yes | Active, Inactive |
+
+<br>
 
 ### 3. Internship Router
 
@@ -255,6 +279,8 @@ school-app-fastapi-backend/
 | /internship-agreements/{agreement_id}/entries | GET | Read agreement entries | Yes | Active, Inactive |
 | /internship-agreements/{agreement_id}/entries | POST | Create new internship entry | Yes | Active |
 | /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Delete internship entry | Yes | Active |
+
+<br>
 
 ### 4. Student Router
 
@@ -278,6 +304,8 @@ school-app-fastapi-backend/
 ## Demo Flow
 
 When all 4 containers are up and running, follow the next steps to correctly set up and test the environment.
+
+<br>
 
 ### 1. Create a new course
 
@@ -317,6 +345,8 @@ This endpoint is public and should return a list of all active courses available
 
 Copy the 'course_id' and save it somewhere.
 
+<br>
+
 ### 2. Register a new student
 
 Select 'POST /auth/register' endpoint within the 'auth' router.
@@ -341,6 +371,8 @@ The response should look like this:
 
 ![registration response](/assets/screenshots/registration_response.png)
 
+<br>
+
 ### 3. Log in 
 
 The registration process includes both the creation of a new student and their first login, returning access and refresh tokens as response.
@@ -357,6 +389,8 @@ It should return something like this:
 
 ![Student info](/assets/screenshots/get_student_response.png)
 
+<br>
+
 ### 4. Create a new company 
 
 Go back to [phpMyAdmin](http://localhost:8080) and open 'companyindb' table.
@@ -371,6 +405,8 @@ Create a new company with the following fields:
 | *address* | ❗required |
 | *tutor* | ❎ optional |
 | *created_at* | ⚡ automatically generated |
+
+<br>
 
 ### 5. Create an internship agreement
 
@@ -399,6 +435,8 @@ Copy the agreement_id and save it.
 
 ⚠️ **Token expired?** Click 'Authorize', logout and login again. The FastAPI docs don't allow extracting the refresh token manually (in order to refresh both tokens through the 'POST /auth/refresh' endpoint). 
 
+<br>
+
 ### 6. Create an internship entry 
 
 Create a new internship entry at 'POST /internship-agreements/{agreement_id}/entries' endpoint, passing the agreement_id as a parameter.
@@ -426,6 +464,8 @@ A list of entries (just the one we created, for now) should be available:
 
 Copy the entry id and save it.
 
+<br>
+
 ### 7. Delete an internship entry
 
 Go to the 'DELETE /internship-agreements/{agreement_id}/entries/{entry_id}' endpoint and pass both the agreement_id and the entry_id parameters.
@@ -439,6 +479,8 @@ The response is the following:
 Now, if you go back and check again 'GET /internship-agreements/{agreement_id}/entries' endpoint, you should find an empty list:
 
 ![Empty entries list](/assets/screenshots/empty_entries_list.png) 
+
+<br>
 
 ### 8. Log out
 
