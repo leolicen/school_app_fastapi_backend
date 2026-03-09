@@ -22,43 +22,37 @@ logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-
 # define /auth router
 router = APIRouter(
-    # prefix does not contain final '/'  because it is included in the endpoints
+    # prefix does not contain final '/' because it is included in the endpoints
     prefix="/auth",
     tags=["auth"],
-   
 )
 
-# -- LOGIN -- 
-# PUBLIC
+
+# public
 @router.post("/login", response_model=AccessRefreshToken)
 @limiter.limit("10/minute")
 def login(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     student_service: StudentService = Depends(get_student_service)
-    ):
+):
     return student_service.login_for_access_token(form_data)
 
 
-
-# -- REGISTER STUDENT -- (register + automatic login)
-# PUBLIC
+# public (register + automatic login)
 @router.post("/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
     request: Request,
     student: StudentCreate,
     student_service: StudentService = Depends(get_student_service)
-    ):
+):
     return student_service.register_and_login(student)
 
 
-
-# -- REQUEST PASSWORD RESET --
-# PUBLIC
+# public
 @router.post("/password/reset-request", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def request_password_reset(
@@ -68,43 +62,38 @@ def request_password_reset(
     student_service: StudentService = Depends(get_student_service)
 ):
     return student_service.request_password_reset(reset_request.email, background_tasks)
-    
 
 
-# -- RESET PASSWORD --
-# PROTECTED (?)
+# protected (?)
 # receives raw token & new_pwd from reset password form
 @router.post("/password/reset-confirm", response_model=dict[str, str])
 @limiter.limit("5/15minute")
 def reset_password(
     request: Request,
-    reset_pwd_data: ResetPwdData, # single body param with token & new_pwd
+    reset_pwd_data: ResetPwdData,  # single body param with token & new_pwd
     student_service: StudentService = Depends(get_student_service)
 ):
     return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
 
 
-
-# @limiter.limit("5/minute")
-# -- REFRESH TOKENS --
-# PROTECTED (?)
+# protected (?)
 @router.post("/refresh", response_model=AccessRefreshToken)
+@limiter.limit("5/minute")
 def refresh_tokens(
+    request: Request,
     refresh_request: RefreshRequest,
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
-    session: SessionDep # session: Annotated[Session, Depends(SessionDep)] => created args & kwargs issue 
+    session: SessionDep  # session: Annotated[Session, Depends(SessionDep)] => created args & kwargs issue
 ):
-    
     if not refresh_request:
         logger.warning("Refresh token missing")
         raise MissingRefreshTokenError()
-        
+
     return auth_service.refresh_tokens(refresh_request.refresh_token, student_id, session)
 
 
-# -- LOGOUT --
-# PROTECTED (?)
+# protected (?)
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
