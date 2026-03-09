@@ -64,7 +64,7 @@ def request_password_reset(
     return student_service.request_password_reset(reset_request.email, background_tasks)
 
 
-# protected (?)
+# protected only with reset token
 # receives raw token & new_pwd from reset password form
 @router.post("/password/reset-confirm", response_model=dict[str, str])
 @limiter.limit("5/15minute")
@@ -76,7 +76,7 @@ def reset_password(
     return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
 
 
-# protected (?)
+# protected (but no token expiry validation)
 @router.post("/refresh", response_model=AccessRefreshToken)
 @limiter.limit("5/minute")
 def refresh_tokens(
@@ -93,7 +93,7 @@ def refresh_tokens(
     return auth_service.refresh_tokens(refresh_request.refresh_token, student_id, session)
 
 
-# protected (?)
+# protected 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
     student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],

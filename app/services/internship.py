@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class InternshipService():
 
     def __init__(self, session: Session):
+        """Initialize CourseService with a DB session."""
         self._db = session
 
 
