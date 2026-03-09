@@ -12,20 +12,14 @@ from .routers.student import router as studentRouter
 from .core.database import lifespan
 
 
-
-
 # FastAPI class instance
-app = FastAPI(title=settings.app_name, lifespan=lifespan) 
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
-
-
-
-# RESEND one-time global configuration at app launch
+# resend one-time global configuration at app launch
 if settings.resend_api_key:
     resend.api_key = settings.resend_api_key
 else:
     print("Resend API KEY not found. Reset password service will not work.")
-    
 
 # app-level rate limiter registration
 setup_rate_limiter(app)
