@@ -48,8 +48,15 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
     - Turni di tirocinio =>  aggiunta di nuovi turni, lettura e eliminazione dei turni già inseriti  
     - Corsi => lettura dei dati del corso frequentato dallo studente
 
+- ⏰ **Cron Job** (via APScheduler):
+    - Eliminazione dei refresh token scaduti dal database
+    - Eliminazione definitiva degli account studente eliminati temporaneamente e scaduti
+    - Attivazione degli accordi di tirocinio alla data d'inizio impostata
+
+- 🚦 **Rate Limiting** (via SlowAPI) sugli endpoint sensibili (login, registrazione, reset password)
+- 📝 **Logging** con il modulo logging della libreria standard di Python
 - 🏢 **Modelli dati** con SQLModel e Pydantic
-- 🛡️ **Gestione degli errori** con errori e handler personalizzati 
+- 🛡️ **Gestione degli errori** con errori e handler personalizzati
 - 🧪 **Test** con Pytest
 - 📚 **Auto-documentazione** con FastApi /docs & /redoc
 - 🐳 **Docker Compose** => stack di 4 container Docker (app FastAPI + MySQL + phpMyAdmin + Redis)

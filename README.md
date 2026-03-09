@@ -48,6 +48,13 @@ They can:
     - Internship entries (shifts) =>  create new entries, read and delete existing entries
     - Course => read student's course info
 
+- ⏰ **Cron Jobs** (via APScheduler):
+    - Delete expired refresh tokens from DB
+    - Delete expired soft-deleted student accounts from DB
+    - Activate internship agreements when their start date is reached
+
+- 🚦 **Rate Limiting** (via SlowAPI) on sensitive endpoints (login, register, password reset)
+- 📝 **Logging** with Python's built-in logging module
 - 🏢 **Data Models** with SQLModel and Pydantic
 - 🛡️ **Error Handling** with custom errors and handlers
 - 🧪 **Testing** with Pytest
