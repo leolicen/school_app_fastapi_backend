@@ -10,9 +10,8 @@ from .guid import GUID
 
 if TYPE_CHECKING:
     from .student import StudentInDB
-    
 
-# -- COURSE BASE --
+
 class CourseBase(SQLModel):
     name: str = Field(max_length=100)
     course_type: str = Field(max_length=50)
@@ -29,23 +28,22 @@ class CourseBase(SQLModel):
             nullable=False,
             server_default=text("1")
         )
-        )
+    )
 
 
-# -- COURSE IN DB --
 class CourseInDB(CourseBase, table=True):
-    # UUID for models id to guarantee more security (unique and unpredictable id, that does not give info on the app)
+    # UUID for model id: more secure (unique and unpredictable, does not expose app info)
     course_id: uuid.UUID = Field(
         sa_column=Column(
             "course_id",
-            GUID(), # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
+            GUID(),  # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
             primary_key=True,
-            default=uuid.uuid4 # just in case the record was created Python-side
+            default=uuid.uuid4  # just in case the record was created Python-side
         )
-    ) 
-    # Field(index=True) tells SQLModel that it should create a SQL index for this column
+    )
+    # Field(index=True) tells SQLModel to create a SQL index for this column
     name: str = Field(max_length=100, index=True, unique=True)
-   
+
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
@@ -53,30 +51,21 @@ class CourseInDB(CourseBase, table=True):
             server_default=text("CURRENT_TIMESTAMP"),
             nullable=False
         ))
-    #  Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
-    # Field(default_factory=lambda: datetime.now(timezone.utc))
-     
-    # Inverse relationship: list of enrolled students => only a VIRTUAL relationship, not a actual property
-    # 'students' property is linked to the 'course' property of Student class
+
+    # inverse relationship: list of enrolled students => only a VIRTUAL relationship, not an actual column
+    # 'students' is linked to the 'course' property of Student class
     # allows to access the list of students linked to the course from Course itself
     students: List["StudentInDB"] = Relationship(back_populates="course")
 
 
-# -- COURSE PUBLIC --
 class CoursePublic(CourseBase):
     course_id: uuid.UUID
-    
 
-# -- COURSE LIST PUBLIC --
+
 class CourseListPublic(BaseModel):
-    """ 
-    Model used for public courses list.
-    """
+    """Model used for public courses list."""
     course_id: uuid.UUID
     name: str = Field(max_length=100)
-
-
-
 
 
 course_trigger_ddl = DDL(
@@ -91,6 +80,7 @@ course_trigger_ddl = DDL(
     """
 )
 
+
 @event.listens_for(CourseInDB.__table__, "after_create")
 def create_course_trigger(target, connection, **kw):
 
@@ -102,4 +92,3 @@ def create_course_trigger(target, connection, **kw):
         result = connection.execute(text("SHOW TRIGGERS LIKE 'before_insert_courseindb'"))
         trigger = result.fetchone()
         print(f"Trigger esiste: {trigger}")
-
