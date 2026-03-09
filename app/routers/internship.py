@@ -10,6 +10,7 @@ from ..dependencies import get_internship_service, get_current_student, get_curr
 from ..services.internship import InternshipService
 from ..models.internship_entry import InternshipEntryPublic, InternshipEntryCreate
 from ..exceptions.exceptions import AgreementForbiddenError, AgreementEntryMismatchError
+from ..core.rate_limiting import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ def get_student_agreement_entries(
 
 # protected (only active students)
 @router.post("/{agreement_id}/entries", response_model=InternshipEntryPublic)
+@limiter.limit("10/minute")
 def create_internship_entry(
     request: Request,
     agreement_id: uuid.UUID,
