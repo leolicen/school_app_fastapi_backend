@@ -35,6 +35,8 @@ They can:
 #### Local-only  
 4-containers Docker stack (or uv run with separate MySQL and Redis)
 
+---
+
 ## Features
 
 - 🔐 **JWT Authentication** => login, authorization and logout with:
@@ -60,6 +62,8 @@ They can:
 - 🧪 **Testing** with Pytest
 - 📚 **Auto-documentation** with FastApi /docs & /redoc
 - 🐳 **Docker Compose** => 4-containers Docker stack (FastAPI app + MySQL + phpMyAdmin + Redis)
+
+---
 
 ## Quick Start
 
@@ -138,6 +142,8 @@ docker-compose up -d
 - **phpMyAdmin**: http://localhost:8080 (use your MySQL credentials to login)
 - **Redis**: http://localhost:6379
 
+---
+
 ## Local development (No Docker)
 
 ⚠️ **Warning**: the application runs without Docker, but still **requires separate MySQL 
@@ -160,6 +166,8 @@ Run the app (with hot-reload):
 uv run python main.py
 ```
 
+---
+
 ## Running Tests
 
 Tests use an in-memory SQLite database and a Redis mock — no external services required.
@@ -181,6 +189,8 @@ Run only integration tests:
 ```bash
 uv run pytest -m integration
 ```
+
+---
 
 ## Project Structure
 
@@ -214,6 +224,8 @@ school-app-fastapi-backend/
 └── uv.lock
 
 ```
+
+---
 
 ## API Endpoints
 
@@ -253,11 +265,15 @@ school-app-fastapi-backend/
 | /students/me | DELETE | Delete student account | Yes | Active, Inactive |
 | /students/change-password | Change student pwd | POST | Yes | Active, Inactive |
 
+---
+
 ## Roadmap
 
 - [ ] Connect to a Flutter frontend app replicating the original UI
 - [ ] Add admin role with endpoints to manage students, companies, courses, and agreements
 - [ ] Expand test coverage
+
+---
 
 ## Demo Flow
 
@@ -433,6 +449,8 @@ Go to the 'POST /auth/logout' endpoint in the docs and click 'execute'.
 ![Logout response](/assets/screenshots/logout%20response.png)
 
 🎉 You've just completed the full demo flow!
+
+---
 
 ## License
 
