@@ -14,7 +14,7 @@ from ..models.company import CompanyInDB
 
 from ..exceptions.exceptions import (AgreementForbiddenError, InternshipCompletedError,
                                      InternshipHoursExceededError, InternshipOverlappingEntryError,
-                                     InternshipEntryNotDeletableError)
+                                     InternshipEntryNotDeletableError, InternshipEntryBeforeStartError)
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,23 @@ class InternshipService():
             logger.warning(f"Student is trying to insert {entry_hours} hours, but only {remaining_hours} are left")
             raise InternshipHoursExceededError(requested=entry_hours, remaining=remaining_hours)
 
+    
+    def validate_entry_date_after_agreement_start(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> None:
+        """Check if entry date is equal or after agreement start date."""
+        agreement = self._db.exec(
+            select(InternshipAgreementInDB).where(
+                InternshipAgreementInDB.agreement_id == agreement_id
+            )
+        ).first()
 
+        if agreement is None:
+            logger.warning(f"Agreement {agreement_id} missing despite ownership check")
+            raise AgreementForbiddenError()
+
+        if entry.entry_date < agreement.start_date:
+            raise InternshipEntryBeforeStartError()
+
+        
     def validate_entry_no_overlap(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryInDB:
         """Check if entry is unique and does not overlap with existing ones."""
         # check perfect duplicates with UniqueConstraint in InDB model
@@ -175,6 +191,9 @@ class InternshipService():
 
     def create_internship_entry(self, agreement_id: uuid.UUID, entry: InternshipEntryCreate) -> InternshipEntryPublic:
         """Validate and create a new internship entry for the given agreement."""
+        # check if entry date is before agreement start date
+        self.validate_entry_date_after_agreement_start(agreement_id, entry)
+
         # check if internship is over (remaining hours = 0) or if remaining hours are less than entry ones
         self.validate_remaining_hours(agreement_id, entry)
 

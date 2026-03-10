@@ -12,7 +12,7 @@ from .exceptions import (
     StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError,
     MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError,
     InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError,
-    InternshipEntryNotDeletableError, InactiveStudentError)
+    InternshipEntryNotDeletableError, InactiveStudentError, InternshipEntryBeforeStartError)
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     status_code = {
         "AGREEMENT_MISMATCH": 400,
         "INTERNSHIP_COMPLETED": 400,
+        "INTERNSHIP_ENTRY_BEFORE_START": 400,
         "INTERNSHIP_HOURS_EXCEEDED": 400,
         "INVALID_CREDENTIALS": 401,
         "INVALID_ACCESS_TOKEN": 401,
@@ -245,6 +246,16 @@ def internship_entry_not_deletable_handler(request: Request, exc: InternshipEntr
     )
 
 
+def internship_entry_before_start_handler(request: Request, exc: InternshipEntryBeforeStartError) -> JSONResponse:
+
+    logger.warning(f"Internship entry before agreement start at {request.url}", extra={"code": exc.code}, exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+
+
 async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
 
     filtered_errors = [e for e in exc.errors() if e['loc'][-1] not in ('args', 'kwargs')]
@@ -287,4 +298,5 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(InternshipHoursExceededError, internship_hours_exceeded_handler)
     app.add_exception_handler(InternshipOverlappingEntryError, internship_overlapping_entry_handler)
     app.add_exception_handler(InternshipEntryNotDeletableError, internship_entry_not_deletable_handler)
+    app.add_exception_handler(InternshipEntryBeforeStartError, internship_entry_before_start_handler)
     app.add_exception_handler(RequestValidationError, request_validation_handler)
