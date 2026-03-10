@@ -65,8 +65,6 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 
 ---
 
-<br>
-
 ## Avvio rapido
 
 ### Prerequisiti
@@ -74,6 +72,8 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 - Docker 20.10+ con plugin Docker Compose:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: pacchetti 'docker' + 'docker compose' 
+
+<br>
 
 ### 1. Clonazione repo & set-up dell'ambiente 
 
