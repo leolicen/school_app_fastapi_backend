@@ -14,8 +14,11 @@ Italian | [English](README.md)
 ![Pydantic v2](https://img.shields.io/badge/Pydantic-v2-%23E92063?logo=pydantic&logoColor=white)
 ![SQLModel](https://img.shields.io/badge/SQLModel-%237e56c2)
 ![Docker](https://img.shields.io/badge/Docker-%232496ED?logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/stato-in%20sviluppo-orange)
 
 ## Panoramica
+
+> ⚠️ Progetto in sviluppo attivo — creato a scopo didattico e di portfolio, non destinato all'uso in produzione.
 
 Progetto personale per imparare le logiche di sviluppo backend, replicando il funzionamento di una applicazione usata 
 per tener traccia di un tirocinio svolto durante un corso IT post diploma. In futuro sarà collegata 
