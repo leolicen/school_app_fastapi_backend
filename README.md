@@ -21,8 +21,6 @@ Personal project to learn backend development, replicating the logic of a real i
 a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
 one I actually used.
 
-<br>
-
 #### Main goal
 Students manage internships as part of a technical post-diploma course.
 They can:
@@ -30,13 +28,9 @@ They can:
 - register/visualize/delete shifts
 - manage personal data
 
-<br>
-
 #### How it works
 - **Static data** [companies, courses, internship agreements] => manually created in DB (through phpMyAdmin)
 - **Dynamic data** [students, internship entries (shifts), tokens] => handled by API endpoints
-
-<br>
 
 #### Local-only  
 4-containers Docker stack (or uv run with separate MySQL and Redis)
@@ -71,17 +65,15 @@ They can:
 
 ---
 
-## Quick Start
-
 <br>
+
+## Quick Start
 
 ### Prerequisites
 
 - Docker 20.10+ with Docker Compose plugin:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: 'docker' + 'docker compose' packages
-
-<br>
 
 ### 1. Clone & environment set-up
 
@@ -164,8 +156,6 @@ docker-compose up -d
 
 ⚠️ **Warning**: the application runs without Docker, but still **requires separate MySQL 
 and Redis** (using '.env' credentials).
-
-<br>
 
 ### 1. uv Setup
 
