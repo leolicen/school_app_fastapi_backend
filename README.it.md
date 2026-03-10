@@ -421,7 +421,7 @@ Apri la tabella 'internshipagreementindb' e crea un nuovo accordo con i seguenti
 
 > **N.B.** Di solito, un accordo si crea in anticipo con una data d'inizio futura, prima della quale lo studente non può creare nuovi turni. L'accordo si attiva automaticamente tramite un cronjob il giorno specificato in 'start_date'. Per questo motivo il valore di default è 0 (False).
 
-Torna su [API docs](http://localhost:8000/docs) e effettua una richiesta all'endpoint 'GET /internship-agreements/'.
+Torna su [API docs](http://localhost:8000/docs) e effettua una richiesta all'endpoint 'GET /internship-agreements/me'.
 
 Apparirà una lista di accordi appartenenti allo studente:
 

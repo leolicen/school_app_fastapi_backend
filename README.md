@@ -420,7 +420,7 @@ Open the 'internshipagreementindb' table and create a new agreement with the fol
 
 > **Note:** Usually, a new agreement is created in advance with a future start date, until which it is not possible for the student to create new entries. The agreement automatically activates via cronjob at the start date. That is why the default value is 0 (False).
 
-Go back to the [API docs](http://localhost:8000/docs) page and execute a request to the 'GET /internship-agreements/' endpoint.
+Go back to the [API docs](http://localhost:8000/docs) page and execute a request to the 'GET /internship-agreements/me' endpoint.
 
 A list with agreements owned by the student should be returned:
 
