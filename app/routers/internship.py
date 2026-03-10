@@ -23,7 +23,7 @@ router = APIRouter(
 
 
 # protected (active & inactive students)
-@router.get("/", response_model=List[InternshipAgreementPublic])
+@router.get("/me", response_model=List[InternshipAgreementPublic])
 def get_student_agreements(
     current_student: Annotated[StudentPublic, Depends(get_current_student)],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]

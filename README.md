@@ -265,7 +265,7 @@ school-app-fastapi-backend/
 
 | Endpoint | Method | Description | Auth | Active/Inactive account |
 | -------- | ------ | ----------- | ---- | ----------------------- |
-| /internship-agreements/ | GET | Read student agreement/s info | Yes | Active, Inactive |
+| /internship-agreements/me | GET | Read student agreement/s info | Yes | Active, Inactive |
 | /internship-agreements/{agreement_id}/entries | GET | Read agreement entries | Yes | Active, Inactive |
 | /internship-agreements/{agreement_id}/entries | POST | Create new internship entry | Yes | Active |
 | /internship-agreements/{agreement_id}/entries/{entry_id} | DELETE | Delete internship entry | Yes | Active |
