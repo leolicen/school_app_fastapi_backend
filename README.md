@@ -65,8 +65,6 @@ They can:
 
 ---
 
-<br>
-
 ## Quick Start
 
 ### Prerequisites
@@ -74,6 +72,8 @@ They can:
 - Docker 20.10+ with Docker Compose plugin:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: 'docker' + 'docker compose' packages
+
+<br>
 
 ### 1. Clone & environment set-up
 
