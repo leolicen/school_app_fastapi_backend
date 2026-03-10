@@ -21,8 +21,6 @@ Progetto personale per imparare le logiche di sviluppo backend, replicando il fu
 per tener traccia di un tirocinio svolto durante un corso IT post diploma. In futuro sarà collegata 
 a un'applicazione Flutter che, a sua volta, cerca di replicarne l'interfaccia grafica.
 
-<br>
-
 #### Obiettivo principale  
 Studenti gestiscono tirocini come parte di un corso tecnico post diploma.  
 Azioni possibili:
@@ -30,13 +28,9 @@ Azioni possibili:
 - registrazione/visualizzazione/eliminazione turni di lavoro
 - gestione dati personali 
 
-<br>
-
 #### Funzionamento
 - **Dati statici** [aziende, corsi, accordi di tirocinio] => creati manualmente nel database (con phpMyAdmin)
 - **Dati dinamici** [studenti, turni di lavoro, token] => gestiti da endpoint API
-
-<br>
 
 #### Sviluppo locale 
 Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a MySQL e Redis)
@@ -71,17 +65,15 @@ Stack di 4 container Docker (o applicazione singola eseguita con uv in unione a 
 
 ---
 
-## Avvio rapido
-
 <br>
+
+## Avvio rapido
 
 ### Prerequisiti
 
 - Docker 20.10+ con plugin Docker Compose:
     - **Windows/Mac**: Docker Desktop
     - **Linux**: pacchetti 'docker' + 'docker compose' 
-
-<br>
 
 ### 1. Clonazione repo & set-up dell'ambiente 
 
@@ -164,8 +156,6 @@ docker-compose up -d
 
 ⚠️ **Attenzione**: l'applicazione funziona senza Docker, ma **richiede MySQL 
 e Redis attivi** separatamente (credenziali nel file '.env').
-
-<br>
 
 ### 1. Setup uv 
 
