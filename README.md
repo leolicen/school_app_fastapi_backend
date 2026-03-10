@@ -14,8 +14,11 @@ English | [Italian](README.it.md)
 ![Pydantic v2](https://img.shields.io/badge/Pydantic-v2-%23E92063?logo=pydantic&logoColor=white)
 ![SQLModel](https://img.shields.io/badge/SQLModel-%237e56c2)
 ![Docker](https://img.shields.io/badge/Docker-%232496ED?logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/status-in%20development-orange)
 
 ## Overview
+
+> ⚠️ Work in progress — built for learning and portfolio purposes, not intended for production use.
 
 Personal project to learn backend development, replicating the logic of a real internship tracking app I used during 
 a 2-year IT course. In the future it will be connected to a Flutter app that, similarly, replicates the UI of the
