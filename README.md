@@ -142,6 +142,11 @@ Launch the full stack from the project's root folder:
 docker-compose up -d
 ```
 
+> **Data persistence**: MySQL and Redis data are persisted via Docker named volumes (`mysql_data`, `redis_data`). Data survives container restarts but is permanently removed with:
+> ```bash
+> docker-compose down -v
+> ```
+
 <br>
 
 ### 4. Access application

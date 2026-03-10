@@ -134,13 +134,18 @@ Aggiorna il file `.env` con l'API key di Resend e il dominio che vuoi utilizzare
 
 <br>
 
-### 3. Lancia i container 
+### 3. Lancia i container
 
 Lancia lo stack completo dalla cartella root del progetto:
 
 ```bash
 docker-compose up -d
 ```
+
+> **Persistenza dei dati**: i dati di MySQL e Redis vengono salvati tramite volumi Docker named (`mysql_data`, `redis_data`). I dati sopravvivono al riavvio dei container, ma vengono eliminati definitivamente con:
+> ```bash
+> docker-compose down -v
+> ```
 
 <br>
 
