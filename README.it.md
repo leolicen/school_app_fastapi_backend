@@ -167,8 +167,6 @@ Scarica le dipendenze del progetto:
 uv sync
 ```
 
-<br>
-
 ### 2. Avvia la app
 
 Avvia l'applicazione (con hot-reload):
