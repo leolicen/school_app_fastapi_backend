@@ -92,3 +92,8 @@ class InternshipOverlappingEntryError(AppError):
 class InternshipEntryNotDeletableError(AppError):
     def __init__(self, message: str = "Entry not found or too old to be deleted"):
         super().__init__(message, "INTERNSHIP_ENTRY_NOT_DELETABLE")
+
+
+class InternshipEntryBeforeStartError(AppError):
+    def __init__(self, message: str = "Entry date cannot be before agreement start date"):
+        super().__init__(message, "INTERNSHIP_ENTRY_BEFORE_START")
