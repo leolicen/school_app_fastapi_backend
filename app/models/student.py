@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 from ..utils.validators import strong_password_validator, normalize_email
 from .guid import GUID
+from .user import UserPublic, UserRole
 
 if TYPE_CHECKING:  # only static type check, does not work at runtime (errors with imports of code like services)
     from .course import CourseInDB
@@ -77,9 +78,13 @@ class StudentCreate(StudentBase):
         return strong_password_validator(v)
 
 
-class StudentPublic(StudentBase):
+class StudentPublic(StudentBase, UserPublic):
+    """ Inherits from both StudentBase and UserPublic models.
+    
+    Role property has a default of 'STUDENT'.
+    """
     student_id: uuid.UUID
-    is_active: bool
+    role: UserRole = UserRole.STUDENT
 
 
 class StudentUpdate(SQLModel):
