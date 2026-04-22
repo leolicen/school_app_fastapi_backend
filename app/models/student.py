@@ -13,7 +13,6 @@ from .user import UserPublic, UserRole
 if TYPE_CHECKING:  # only static type check, does not work at runtime (errors with imports of code like services)
     from .course import CourseInDB
     from .internship_agreement import InternshipAgreementInDB
-    from .auth import RefreshTokenInDB
 
 
 class StudentBase(SQLModel):
@@ -65,7 +64,6 @@ class StudentInDB(StudentBase, table=True):
     # case of possible empty List is already handled
     internship_agreements: List["InternshipAgreementInDB"] = Relationship(back_populates="student")
 
-    refresh_tokens: List["RefreshTokenInDB"] = Relationship(back_populates="student")
 
 
 # pwd with 8 chars min to prevent potential UI Flutter bypass
