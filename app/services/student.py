@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -14,11 +14,9 @@ from sqlmodel import Session, select
 
 from ..core.settings import settings
 from ..exceptions.exceptions import (
-    AccountExpiredError,
     CourseNotFoundError,
     DatabaseError,
     DuplicateEmailError,
-    InvalidCredentialsError,
     InvalidCurrentPasswordError,
     StudentNotFoundError,
 )
@@ -29,6 +27,7 @@ from ..models.student import StudentCreate, StudentInDB, StudentPublic, StudentU
 from ..utils.validators import normalize_email
 from .auth import AuthService
 from .email import EmailService
+from .user import UserService
 
 
 logger = logging.getLogger(__name__)
@@ -36,10 +35,11 @@ logger = logging.getLogger(__name__)
 
 class StudentService():
 
-    def __init__(self, session: Session, auth_service: AuthService, redis_client: redis.Redis):
+    def __init__(self, session: Session, auth_service: AuthService, user_service: UserService, redis_client: redis.Redis):
         """Initialize StudentService with a DB session, auth service, and Redis client."""
         self._db = session
         self.auth_service = auth_service
+        self.user_service = user_service
         self.redis = redis_client
 
 
@@ -80,41 +80,6 @@ class StudentService():
             return None
 
         return student
-
-
-    def login_for_access_token(self, form_data: OAuth2PasswordRequestForm) -> AccessRefreshToken:
-        """Login for active & inactive students (specific endpoints check 'is_active' separately)."""
-        # authenticate student by email & password
-        student = self.authenticate_student(form_data.username, form_data.password)
-
-        if not student:
-            raise InvalidCredentialsError()
-
-        # check account expiry BEFORE the try block to avoid AppError being swallowed by except Exception
-        if student.deleted_at:
-            delta = datetime.now(timezone.utc) - student.deleted_at.replace(tzinfo=timezone.utc)
-
-            if delta.days >= 30:
-                raise AccountExpiredError()
-
-            student.deleted_at = None
-            student.is_active = True
-
-        try:
-            # if student is authenticated, create access token with their id
-            access_token = self.auth_service.create_access_token(
-                student.student_id,
-                timedelta(minutes=settings.access_token_expire_minutes)
-            )
-
-            # create refresh token (token hash saved in db + raw token returned)
-            refresh_token = self.auth_service.create_refresh_token(student.student_id, self._db)
-
-            return AccessRefreshToken(access_token=access_token, token_type="Bearer", refresh_token=refresh_token)
-
-        except Exception:
-            self._db.rollback()
-            raise DatabaseError("Login failed")
 
 
     def register_student(self, student: StudentCreate) -> StudentPublic:
@@ -193,7 +158,7 @@ class StudentService():
         )
 
         # return access token after login
-        return self.login_for_access_token(form_data)
+        return self.user_service.login_for_access_token(form_data)
 
 
     def update_student(self, current_student_id: uuid.UUID, student_to_update: StudentUpdate) -> StudentPublic:

@@ -16,6 +16,7 @@ from .services.auth import AuthService
 from .services.course import CourseService
 from .services.internship import InternshipService
 from .services.student import StudentService
+from .services.user import UserService
 
 
 logger = logging.getLogger(__name__)
@@ -29,15 +30,24 @@ def get_auth_service(redis_client: RedisDep):
     """Provide an AuthService instance with a Redis client."""
     return AuthService(redis_client=redis_client)
 
+# -- USER SERVICE DEPENDENCY --
+def get_user_service(
+    session: SessionDep,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)]
+):
+    """ Provide a UserService instance with DB session and auth service."""
+    return UserService(session=session, auth_service=auth_service)
+
 
 # -- STUDENT SERVICE DEPENDENCY --
 def get_student_service(
     session: SessionDep,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     redis_client: RedisDep
 ):
-    """Provide a StudentService instance with DB session, auth service, and Redis client."""
-    return StudentService(session=session, auth_service=auth_service, redis_client=redis_client)
+    """Provide a StudentService instance with DB session, auth service, user service and Redis client."""
+    return StudentService(session=session, auth_service=auth_service, user_service=user_service, redis_client=redis_client)
 
 
 # -- COURSE SERVICE DEPENDENCY --
