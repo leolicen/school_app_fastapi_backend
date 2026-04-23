@@ -2,13 +2,12 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 import jwt
 from pymysql import IntegrityError
 import redis.asyncio as redis
 from pydantic import EmailStr
-from sqlalchemy import delete, update
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 
@@ -20,13 +19,12 @@ from ..exceptions.exceptions import (
     InvalidCurrentPasswordError,
     StudentNotFoundError,
 )
-from ..models.auth import AccessRefreshToken, RefreshTokenInDB, ResetTokenInDB
+from ..models.auth import AccessRefreshToken, RefreshTokenInDB
 from ..models.course import CourseInDB
 from ..models.password import ChangePassword
 from ..models.student import StudentCreate, StudentInDB, StudentPublic, StudentUpdate
 from ..utils.validators import normalize_email
 from .auth import AuthService
-from .email import EmailService
 from .user import UserService
 
 
@@ -220,68 +218,6 @@ class StudentService():
         except Exception:
             self._db.rollback()
             raise DatabaseError("Failed to change password")
-
-
-    def request_password_reset(self, student_email: EmailStr, background_tasks: BackgroundTasks) -> dict[str, str]:
-        """Internal error handling for security reasons (no info leaked to client)."""
-        try:
-            # create one-time reset token (if email not valid raise ValueError)
-            token = self.auth_service.create_reset_token(email=student_email, session=self._db)
-
-            # attempt email transmission
-            background_tasks.add_task(EmailService.send_reset_email, student_email, token)
-
-            logger.info(f"Reset queued for {student_email}")
-
-        except ValueError:
-            logger.warning(f"Invalid reset request: {student_email}")
-            pass
-
-        return {"detail": "If email is valid, request was sent"}
-
-
-    def reset_password(self, reset_token: ResetTokenInDB, new_password: str) -> dict[str, str]:
-        """Apply a new password using a validated reset token, then delete the token from the DB.
-
-        Records the reset timestamp in pwd_reset_at.
-        """
-        # retrieve student from db
-        student_in_db = self.get_student_by_email(reset_token.email)
-
-        # unnecessary check (token already validated), only for 100% security
-        if not student_in_db:
-            raise StudentNotFoundError()
-
-        # create new pwd hash
-        new_pwd_hash = self.auth_service.get_password_hash(new_password)
-
-        # substitute old pwd hash with new one
-        student_in_db.hashed_password = new_pwd_hash
-
-        # add pwd reset datetime
-        student_in_db.pwd_reset_at = datetime.now(timezone.utc)
-
-        try:
-            # delete reset token
-            self._db.exec(delete(ResetTokenInDB).where(ResetTokenInDB.reset_token_id == reset_token.reset_token_id))
-            self._db.add(student_in_db)
-            self._db.flush()
-            self._db.refresh(student_in_db)
-
-            return {"detail": "Password reset successfully"}
-
-        except Exception:
-            self._db.rollback()
-            raise DatabaseError("Failed to reset password")
-
-
-    def confirm_password_reset(self, raw_reset_token: str, new_password: str) -> dict[str, str]:
-        """Validate the raw reset token and delegate to reset_password to apply the new password."""
-        # validate reset token
-        valid_reset_token = self.auth_service.validate_reset_token(raw_reset_token, self._db)
-
-        # reset password
-        return self.reset_password(valid_reset_token, new_password)
 
 
     def revoke_refresh_token(self, student_id: uuid.UUID) -> int:

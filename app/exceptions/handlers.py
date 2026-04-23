@@ -9,10 +9,11 @@ from jwt import InvalidTokenError
 
 from .exceptions import (
     AppError, InvalidCredentialsError, AccountExpiredError, DuplicateEmailError, DatabaseError,
-    StudentNotFoundError, InvalidCurrentPasswordError, InvalidResetTokenError, InvalidRefreshTokenError,
-    MissingRefreshTokenError, CourseNotFoundError, AgreementForbiddenError, AgreementEntryMismatchError,
-    InternshipCompletedError, InternshipHoursExceededError, InternshipOverlappingEntryError,
-    InternshipEntryNotDeletableError, InactiveStudentError, InternshipEntryBeforeStartError)
+    UserNotFoundError, StudentNotFoundError, TutorNotFoundError, InvalidCurrentPasswordError, 
+    InvalidResetTokenError, InvalidRefreshTokenError, MissingRefreshTokenError, CourseNotFoundError, 
+    AgreementForbiddenError, AgreementEntryMismatchError, InternshipCompletedError, InternshipHoursExceededError, 
+    InternshipOverlappingEntryError, InternshipEntryNotDeletableError, InactiveStudentError, 
+    InternshipEntryBeforeStartError)
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,9 @@ def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         "AGREEMENT_FORBIDDEN": 403,
         "INVALID_CURRENT_PASSWORD": 403,
         "INVALID_RESET_TOKEN": 403,
+        "USER_NOT_FOUND": 404,
         "STUDENT_NOT_FOUND": 404,
+        "TUTOR_NOT_FOUND": 404,
         "COURSE_NOT_FOUND": 404,
         "INTERNSHIP_ENTRY_NOT_DELETABLE": 404,
         "DUPLICATE_EMAIL": 409,
@@ -116,9 +119,29 @@ def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse
     )
 
 
+def user_not_found_handler(request: Request, exc: UserNotFoundError) -> JSONResponse:
+
+    logger.warning(f"User not found at {request.url}: {exc.message}", exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
 def student_not_found_handler(request: Request, exc: StudentNotFoundError) -> JSONResponse:
 
     logger.warning(f"Student not found at {request.url}: {exc.message}", exc_info=True)
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+    
+    
+def tutor_not_found_handler(request: Request, exc: TutorNotFoundError) -> JSONResponse:
+
+    logger.warning(f"Tutor not found at {request.url}: {exc.message}", exc_info=True)
 
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -285,7 +308,9 @@ def setup_handlers(app: FastAPI):
     app.add_exception_handler(AccountExpiredError, account_expired_handler)
     app.add_exception_handler(DuplicateEmailError, duplicate_email_handler)
     app.add_exception_handler(DatabaseError, database_error_handler)
+    app.add_exception_handler(UserNotFoundError, user_not_found_handler)
     app.add_exception_handler(StudentNotFoundError, student_not_found_handler)
+    app.add_exception_handler(TutorNotFoundError, tutor_not_found_handler)
     app.add_exception_handler(InactiveStudentError, inactive_student_handler)
     app.add_exception_handler(InvalidCurrentPasswordError, invalid_current_password_handler)
     app.add_exception_handler(InvalidResetTokenError, invalid_reset_token_handler)

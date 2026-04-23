@@ -29,9 +29,18 @@ class DatabaseError(AppError):
         super().__init__(message, "DATABASE_ERROR")
 
 
+class UserNotFoundError(AppError):
+    def __init__(self, message: str = "User not found"):
+        super().__init__(message, "USER_NOT_FOUND")
+        
+        
 class StudentNotFoundError(AppError):
     def __init__(self, message: str = "Student not found"):
         super().__init__(message, "STUDENT_NOT_FOUND")
+        
+class TutorNotFoundError(AppError):
+    def __init__(self, message: str = "Tutor not found"):
+        super().__init__(message, "TUTOR_NOT_FOUND")
 
 
 class InactiveStudentError(AppError):
