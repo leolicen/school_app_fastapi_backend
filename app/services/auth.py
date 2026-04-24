@@ -7,6 +7,7 @@ import jwt
 from pwdlib import PasswordHash
 from pydantic import EmailStr
 import redis.asyncio as redis
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import delete, Session, select
 
@@ -291,3 +292,62 @@ class AuthService():
         except Exception as e:
             logger.error(f"Tokens refresh failed for user {user_id}: {str(e)}")
             raise DatabaseError("Failed to refresh tokens")
+        
+    
+    @staticmethod
+    def revoke_refresh_token(user_id: uuid.UUID, session: Session) -> int:
+        """Revoke active refresh tokens for this user. Used only during logout."""
+        try:
+            # query to update refresh token "revoked_at" field
+            revoke_refresh_token = update(RefreshTokenInDB).where(
+                RefreshTokenInDB.user_id == user_id,
+                RefreshTokenInDB.revoked_at.is_(None),
+                RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
+            ).values(revoked_at=datetime.now(timezone.utc))
+
+            result = session.exec(revoke_refresh_token)
+
+            rowcount = result.rowcount
+
+            if rowcount == 0:
+                logger.debug(f"No active refresh token for user {user_id}")
+            else:
+                logger.info(f"Revoked {rowcount} refresh token(s) for user {user_id}")
+
+            return rowcount
+
+        except SQLAlchemyError as e:
+            session.rollback()
+            logger.error(f"Failed to revoke refresh tokens for {user_id}: {str(e)}")
+            raise DatabaseError("Failed to revoke refresh tokens")
+    
+    
+    async def blacklist_access_token(self, access_token: str):
+        """Blacklist the access token jti in Redis. Used only during logout."""
+        try:
+            # decode received token
+            payload = jwt.decode(
+                access_token,
+                settings.secret_key,
+                algorithms=[settings.algorithm],
+                options={"verify_exp": False}
+            )
+
+            # extract jti
+            jti = payload["jti"]
+            # extract expiration
+            exp = payload["exp"]
+            # calculate time to live
+            ttl = max(0, exp - int(datetime.now(timezone.utc).timestamp()))  # tells redis how long the token must be blacklisted before deletion
+
+            if ttl > 0:
+                # insert JTI in Redis blacklist
+                await self.redis.setex(f"blacklist:{jti}", int(ttl), "1")
+                # 1 indicates key exists in the list (smallest possible value)
+                logger.debug(f"Blacklisted access token {jti[:8]}... (TTL: {ttl}s)")
+
+        except jwt.InvalidTokenError:
+            logger.warning("Invalid access token provided for blacklist")
+
+        except Exception as e:
+            logger.error(f"Redis blacklist failed: {str(e)}")

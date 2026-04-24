@@ -153,3 +153,16 @@ class UserService():
 
         # reset password
         return self.reset_password(valid_reset_token, new_password)
+    
+    
+    async def logout(self, user_id: uuid.UUID, access_token: str):
+        """Log out the user by revoking their refresh token and blacklisting the access token in Redis."""
+        # revoke refresh token
+        self.auth_service.revoke_refresh_token(user_id, self._db)
+
+        # blacklist access token in Redis
+        await self.auth_service.blacklist_access_token(access_token)
+
+        logger.info(f"User {user_id} logged out")
+
+        return

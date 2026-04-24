@@ -3,15 +3,11 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi.security import OAuth2PasswordRequestForm
-import jwt
 from pymysql import IntegrityError
-import redis.asyncio as redis
 from pydantic import EmailStr
-from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import Session, select
 
-from ..core.settings import settings
 from ..exceptions.exceptions import (
     CourseNotFoundError,
     DatabaseError,
@@ -19,7 +15,7 @@ from ..exceptions.exceptions import (
     InvalidCurrentPasswordError,
     StudentNotFoundError,
 )
-from ..models.auth import AccessRefreshToken, RefreshTokenInDB
+from ..models.auth import AccessRefreshToken
 from ..models.course import CourseInDB
 from ..models.password import ChangePassword
 from ..models.student import StudentCreate, StudentInDB, StudentPublic, StudentUpdate
@@ -33,12 +29,11 @@ logger = logging.getLogger(__name__)
 
 class StudentService():
 
-    def __init__(self, session: Session, auth_service: AuthService, user_service: UserService, redis_client: redis.Redis):
-        """Initialize StudentService with a DB session, auth service, and Redis client."""
+    def __init__(self, session: Session, auth_service: AuthService, user_service: UserService):
+        """Initialize StudentService with a DB session, auth service, and user service."""
         self._db = session
         self.auth_service = auth_service
         self.user_service = user_service
-        self.redis = redis_client
 
 
     def get_student_by_email(self, email: EmailStr) -> StudentInDB | None:
@@ -220,77 +215,6 @@ class StudentService():
             raise DatabaseError("Failed to change password")
 
 
-    def revoke_refresh_token(self, student_id: uuid.UUID) -> int:
-        """Revoke active refresh tokens for this student. Used only during logout."""
-        try:
-            # query to update refresh token "revoked_at" field
-            revoke_refresh_token = update(RefreshTokenInDB).where(
-                RefreshTokenInDB.student_id == student_id,
-                RefreshTokenInDB.revoked_at.is_(None),
-                RefreshTokenInDB.expires_at > datetime.now(timezone.utc)
-            ).values(revoked_at=datetime.now(timezone.utc))
-
-            result = self._db.exec(revoke_refresh_token)
-
-            rowcount = result.rowcount
-
-            if rowcount == 0:
-                logger.debug(f"No active refresh token for student {student_id}")
-            else:
-                logger.info(f"Revoked {rowcount} refresh token(s) for student {student_id}")
-
-            return rowcount
-
-        except SQLAlchemyError as e:
-            self._db.rollback()
-            logger.error(f"Failed to revoke refresh tokens for {student_id}: {str(e)}")
-            raise DatabaseError("Failed to revoke refresh tokens")
-
-
-    async def blacklist_access_token(self, access_token: str):
-        """Blacklist the access token jti in Redis. Used only during logout."""
-        try:
-            # decode received token
-            payload = jwt.decode(
-                access_token,
-                settings.secret_key,
-                algorithms=[settings.algorithm],
-                options={"verify_exp": False}
-            )
-
-            # extract jti
-            jti = payload["jti"]
-            # extract expiration
-            exp = payload["exp"]
-            # calculate time to live
-            ttl = max(0, exp - int(datetime.now(timezone.utc).timestamp()))  # tells redis how long the token must be blacklisted before deletion
-
-            if ttl > 0:
-                # insert JTI in Redis blacklist
-                await self.redis.setex(f"blacklist:{jti}", int(ttl), "1")
-                # 1 indicates key exists in the list (smallest possible value)
-                logger.debug(f"Blacklisted access token {jti[:8]}... (TTL: {ttl}s)")
-
-        except jwt.InvalidTokenError:
-            logger.warning("Invalid access token provided for blacklist")
-
-        except Exception as e:
-            logger.error(f"Redis blacklist failed: {str(e)}")
-
-
-    async def logout(self, student_id: uuid.UUID, access_token: str):
-        """Log out the student by revoking their refresh token and blacklisting the access token in Redis."""
-        # revoke refresh token
-        self.revoke_refresh_token(student_id)
-
-        # blacklist access token in Redis
-        await self.blacklist_access_token(access_token)
-
-        logger.info(f"Student {student_id} logged out")
-
-        return
-
-
     async def delete_student(self, student: StudentPublic, access_token: str) -> dict[str, str]:
         """Soft delete: sets deleted_at and logs out the student."""
         try:
@@ -301,7 +225,7 @@ class StudentService():
             student_in_db.is_active = False
 
             # logout
-            await self.logout(student.student_id, access_token)
+            await self.user_service.logout(student.student_id, access_token)
 
             logger.info(f"Student {student.student_id} soft deleted")
 
