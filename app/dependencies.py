@@ -17,6 +17,7 @@ from .services.course import CourseService
 from .services.internship import InternshipService
 from .services.student import StudentService
 from .services.user import UserService
+from .services.tutor import TutorService
 
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,16 @@ def get_student_service(
 ):
     """Provide a StudentService instance with DB session, auth service, and user service."""
     return StudentService(session=session, auth_service=auth_service, user_service=user_service)
+
+
+# -- TUTOR SERVICE DEPENDENCY --
+def get_tutor_service(
+    session: SessionDep,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+):
+    """Provide a TutorService instance with DB session, auth service, and user service."""
+    return TutorService(session=session, auth_service=auth_service, user_service=user_service)
 
 
 # -- COURSE SERVICE DEPENDENCY --

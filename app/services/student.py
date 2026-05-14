@@ -39,7 +39,7 @@ class StudentService():
     def get_student_by_email(self, email: EmailStr) -> StudentInDB | None:
         """Check if student exists by email.
 
-        Returns StudentInDB (table model) because authenticate_student() needs access to 'hashed_password'.
+        Returns StudentInDB (table model) because change_password() needs access to 'hashed_password'.
         """
         normalized_email = normalize_email(email)
 
@@ -59,20 +59,6 @@ class StudentService():
         ).first()
 
         return StudentPublic.model_validate(student)
-
-
-    def authenticate_student(self, email: EmailStr, password: str) -> StudentInDB | None:
-        """Authenticate student during login.
-
-        Returns StudentInDB because the login function only returns a token, not the student object.
-        """
-        if not (student := self.get_student_by_email(email)):  # walrus operator ':='
-            return None
-
-        if not self.auth_service.verify_password(password, student.hashed_password):
-            return None
-
-        return student
 
 
     def register_student(self, student: StudentCreate) -> StudentPublic:
