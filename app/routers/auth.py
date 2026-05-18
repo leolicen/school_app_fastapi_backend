@@ -3,12 +3,12 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 
 from ..core.database import SessionDep
 from ..models.auth import AccessRefreshToken
 from ..models.password import ResetPasswordRequest, ResetPwdData
-from ..dependencies import get_student_service, get_auth_service, get_current_user_id_only, get_user_service, get_tutor_service
+from ..dependencies import get_student_service, get_auth_service, get_current_user_id_only, get_user_service, get_tutor_service, oauth2_scheme
 from ..services.student import StudentService
 from ..services.user import UserService
 from ..services.tutor import TutorService
@@ -21,8 +21,6 @@ from ..exceptions.exceptions import MissingRefreshTokenError
 
 
 logger = logging.getLogger(__name__)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # define /auth router
