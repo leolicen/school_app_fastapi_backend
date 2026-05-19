@@ -48,12 +48,15 @@ class TutorService():
 
         Returns TutorPublic (no hashed_password) because get_current_user() doesn't need it.
         _db.get(Student, id) would also work since id is the primary key.
+        
+        Please Note: None is fundamental to throw an UnauthorizedRoleError in require_role when a student tries to access a tutor endpoint. 
+        Model_validate breaks with a None parameter.
         """
         tutor = self._db.exec(
             select(TutorInDB).where(TutorInDB.tutor_id == id)
         ).first()
 
-        return TutorPublic.model_validate(tutor)
+        return TutorPublic.model_validate(tutor) if tutor else None
     
     
     def register_tutor(self, tutor: TutorCreate) -> TutorPublic:
