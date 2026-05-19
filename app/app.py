@@ -9,6 +9,7 @@ from .routers.auth import router as authRouter
 from .routers.course import router as courseRouter
 from .routers.internship import router as internshipRouter
 from .routers.student import router as studentRouter
+from .routers.tutor import router as tutorRouter
 from .core.database import lifespan
 
 
@@ -35,3 +36,4 @@ app.include_router(authRouter)
 app.include_router(internshipRouter)
 app.include_router(courseRouter)
 app.include_router(studentRouter)
+app.include_router(tutorRouter)
