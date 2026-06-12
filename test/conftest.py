@@ -12,6 +12,7 @@ import app.models # only loads models into SQLModel.metadata so that all tables 
 from app.app import app
 from app.core.database import get_session
 from app.models.student import StudentInDB
+from app.models.tutor import TutorInDB
 from app.services.auth import AuthService
 from app.core.redis import get_redis
 from app.models.course import CourseInDB
@@ -103,12 +104,12 @@ async def async_client_fixture(session: Session, mock_redis):
     
     
 
-# -- TEST USER FIXTURE --
-@pytest.fixture(name="test_user")
-def test_user_fixture(session: Session, test_course: CourseInDB):
-    """ Creates a test user in DB """
+# -- TEST STUDENT FIXTURE --
+@pytest.fixture(name="test_student")
+def test_student_fixture(session: Session, test_course: CourseInDB):
+    """ Creates a test student in DB """
 
-    user = StudentInDB(
+    student = StudentInDB(
         name="John",
         surname="Doe",
         email="john.doe@gmail.com",
@@ -116,33 +117,73 @@ def test_user_fixture(session: Session, test_course: CourseInDB):
         hashed_password=AuthService.get_password_hash("!#CrediblePasSw0rd")
     )
 
-    session.add(user)
+    session.add(student)
     session.commit()
-    session.refresh(user)
+    session.refresh(student)
 
-    return user
+    return student
 
 
 
-# -- ACCESS TOKEN FIXTURE -- => access token string for testing single functions that require token as a string
-@pytest.fixture(name="access_token")
-async def access_token_fixture(async_client: AsyncClient, test_user: StudentInDB):
-    """ Returns JWT token string only. Used for functions testing. """
+# -- STUDENT ACCESS TOKEN FIXTURE -- => access token string for testing single functions that require token as a string
+@pytest.fixture(name="student_access_token")
+async def student_access_token_fixture(async_client: AsyncClient, test_student: StudentInDB):
+    """ Returns student JWT token string only. Used for functions testing. """
     
-    response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
+    response = await async_client.post("/auth/login", data={"username": test_student.email, "password": "!#CrediblePasSw0rd"})
     
     return response.json()["access_token"]
     
     
 
-
-# -- AUTH HEADER FIXTURE -- => authorization header for endpoint testing only (they require the whole header)
-@pytest.fixture(name="auth_header")
-async def auth_header_fixture(access_token):
-    """ Returns Authorization header with Bearer token. Used for endpoint testing. """
+# -- STUDENT AUTH HEADER FIXTURE -- => authorization header for endpoint testing only (they require the whole header)
+@pytest.fixture(name="student_auth_header")
+async def student_auth_header_fixture(student_access_token):
+    """ Returns student Authorization header with Bearer token. Used for endpoint testing. """
    
     
-    return {"Authorization": f"Bearer {access_token}"}
+    return {"Authorization": f"Bearer {student_access_token}"}
+
+
+
+# -- TEST TUTOR FIXTURE --
+@pytest.fixture(name="test_tutor")
+def test_tutor_fixture(session: Session):
+    """ Creates a test tutor in DB """
+
+    tutor = TutorInDB(
+        name="Gioacchino",
+        surname="Patarnalli",
+        email="gio_pata@gmail.com",
+        hashed_password=AuthService.get_password_hash("Gr@nd3PATA")
+    )
+
+    session.add(tutor)
+    session.commit()
+    session.refresh(tutor)
+
+    return tutor
+
+
+
+# -- TUTOR ACCESS TOKEN FIXTURE -- => access token string for testing single functions that require token as a string
+@pytest.fixture(name="tutor_access_token")
+async def tutor_access_token_fixture(async_client: AsyncClient, test_tutor: TutorInDB):
+    """ Returns tutor JWT token string only. Used for functions testing. """
+    
+    response = await async_client.post("/auth/login", data={"username": test_tutor.email, "password": "Gr@nd3PATA"})
+    
+    return response.json()["access_token"]
+
+
+
+# -- TUTOR AUTH HEADER FIXTURE -- => authorization header for endpoint testing only (they require the whole header)
+@pytest.fixture(name="tutor_auth_header")
+async def tutor_auth_header_fixture(tutor_access_token):
+    """ Returns tutor Authorization header with Bearer token. Used for endpoint testing. """
+   
+    
+    return {"Authorization": f"Bearer {tutor_access_token}"}
 
 
 
