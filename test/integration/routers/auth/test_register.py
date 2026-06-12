@@ -25,7 +25,7 @@ class TestRegisterStudent:
         }
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         assert response.status_code == 200
         
@@ -69,7 +69,7 @@ class TestRegisterStudent:
         }
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -96,7 +96,7 @@ class TestRegisterStudent:
         }
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -130,7 +130,7 @@ class TestRegisterPasswordValidation:
         new_student = self.setup_student(test_course=test_course, password="Pass1!")
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -156,7 +156,7 @@ class TestRegisterPasswordValidation:
         new_student = self.setup_student(test_course=test_course, password="password!2") 
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -174,7 +174,7 @@ class TestRegisterPasswordValidation:
         new_student = self.setup_student(test_course=test_course, password="PASSWORD!2")  
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -192,7 +192,7 @@ class TestRegisterPasswordValidation:
         new_student = self.setup_student(test_course=test_course, password="Password!")  
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         
@@ -210,7 +210,7 @@ class TestRegisterPasswordValidation:
         new_student = self.setup_student(test_course=test_course, password="Password2") 
         
         # register new student
-        response = await async_client.post("/auth/register", json=new_student)
+        response = await async_client.post("/auth/student/register", json=new_student)
         
         data = response.json()
         

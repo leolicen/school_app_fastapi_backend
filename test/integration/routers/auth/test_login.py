@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 
-class TestLoginWithExistingUser:
-    """ Test login scenarios for registered users """
+class TestLoginWithExistingStudent:
+    """ Test login scenarios for registered students """
 
-    async def test_login_with_valid_credentials(self, async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_valid_credentials(self, async_client: AsyncClient, test_student: StudentInDB):
         
-        response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "!#CrediblePasSw0rd"})
+        response = await async_client.post("/auth/login", data={"username": test_student.email, "password": "!#CrediblePasSw0rd"})
         
         assert response.status_code == 200
         
@@ -29,9 +29,9 @@ class TestLoginWithExistingUser:
         
         
     
-    async def test_login_with_invalid_password(self, async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_invalid_password(self, async_client: AsyncClient, test_student: StudentInDB):
         
-        response = await async_client.post("/auth/login", data={"username": test_user.email, "password": "ciao"})
+        response = await async_client.post("/auth/login", data={"username": test_student.email, "password": "ciao"})
         
         assert response.status_code == 401
         
@@ -47,9 +47,9 @@ class TestLoginWithExistingUser:
         
         
         
-    async def test_login_with_no_password(self, async_client: AsyncClient, test_user: StudentInDB):
+    async def test_login_with_no_password(self, async_client: AsyncClient, test_student: StudentInDB):
         
-        response = await async_client.post("/auth/login", data={"username": test_user.email, "password": ""})
+        response = await async_client.post("/auth/login", data={"username": test_student.email, "password": ""})
         
         logger.info(f"Response status: {response.status_code}")
         logger.info(f"Response body: {response.json()}")
@@ -63,7 +63,7 @@ class TestLoginWithExistingUser:
 
 
 
-class TestLoginWithNonExistingUser:
+class TestLoginWithNonExistingStudent:
     """ Test login scenarios for non-registered users """
     
     async def test_login_with_no_email(self, async_client: AsyncClient):
