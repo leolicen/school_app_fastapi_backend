@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 
-async def test_get_current_student_with_valid_token(async_client: AsyncClient, auth_header):
+async def test_get_current_student_with_valid_token(async_client: AsyncClient, student_auth_header):
     
-    response = await async_client.get("/students/me", headers=auth_header)
+    response = await async_client.get("/students/me", headers=student_auth_header)
     
     print_json_response(json_response=response.json(), response_name="Current student profile")
     
