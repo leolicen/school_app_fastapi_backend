@@ -27,3 +27,11 @@ async def test_get_current_tutor_with_invalid_token(async_client: AsyncClient):
     
     assert response.status_code == 401
     
+
+async def test_get_current_tutor_by_student(async_client: AsyncClient, student_auth_header):
+    
+    response = await async_client.get("/tutors/me", headers=student_auth_header)
+    
+    assert response.status_code == 403
+    assert response.json()["error"]["message"] == "You do not have permission to access this resource"
+    
