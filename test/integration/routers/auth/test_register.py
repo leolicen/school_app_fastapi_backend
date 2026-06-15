@@ -105,11 +105,9 @@ class TestRegisterStudent:
         
         assert response.status_code == 422
         
-    
-        
 
 
-class TestRegisterPasswordValidation:
+class TestRegisterStudentPasswordValidation:
     
     def setup_student(self, test_course: CourseInDB, password: str):
         base_student = {
@@ -211,6 +209,71 @@ class TestRegisterPasswordValidation:
         
         # register new student
         response = await async_client.post("/auth/student/register", json=new_student)
+        
+        data = response.json()
+        
+        logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response body: {data}")
+        
+        assert response.status_code == 422
+
+
+
+class TestRegisterTutor:
+    
+    async def test_register_success(self, async_client: AsyncClient):
+        
+        # create new tutor
+        new_tutor = {
+            "name": "Genoveffa",
+            "surname": "Mensari",
+            "email": "geno.veffa@gmail.com",
+            "password": "P@ssW0rdB3lla"
+        }
+        
+        # register new tutor
+        response = await async_client.post("/auth/tutor/register", json=new_tutor)
+        
+        assert response.status_code == 200
+        
+        data = response.json()
+        
+        logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response body: {data}")
+        
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "Bearer"
+        
+        # create auth header with new tutor access token
+        authorization_header = {"Authorization": f"Bearer {data["access_token"]}"}
+        
+        # get new tutor profile
+        profile_response = await async_client.get("/tutors/me", headers=authorization_header)
+        
+        assert profile_response.status_code == 200
+        
+        profile = profile_response.json()
+        
+        print_json_response(json_response=profile, response_name="Newly registered profile")
+        
+       
+        assert profile["email"] == new_tutor["email"]
+        assert profile["name"] == new_tutor["name"]
+    
+    
+    async def test_register_with_empty_password(self, async_client: AsyncClient):
+        
+        # create new tutor
+        new_tutor = {
+            "name": "Genoveffa",
+            "surname": "Mensari",
+            "email": "geno.veffa@gmail.com",
+            "password": ""
+        }
+        
+        # register new tutor
+        response = await async_client.post("/auth/tutor/register", json=new_tutor)
         
         data = response.json()
         
