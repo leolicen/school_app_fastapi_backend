@@ -73,6 +73,13 @@ class TestCreateAccessToken:
         assert "jti" in payload
         assert len(payload["jti"]) > 0
         
+    def test_payload_contains_role(self):
+        token = AuthService.create_access_token(user_id=uuid.uuid4(), role=UserRole.STUDENT)
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        
+        assert "role" in payload
+        assert len(payload["role"]) > 0
+        
 
     def test_default_expiry_is_15_minutes(self):
         before = datetime.now(timezone.utc).replace(microsecond=0)
