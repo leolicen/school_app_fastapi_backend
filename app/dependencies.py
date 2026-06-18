@@ -10,12 +10,16 @@ from jwt import InvalidTokenError
 from .core.database import SessionDep
 from .core.redis import RedisDep
 from .core.settings import settings
-from .exceptions.exceptions import InactiveStudentError
+from .exceptions.exceptions import InactiveUserError, UnauthorizedRoleError
 from .models.student import StudentPublic
+from .models.tutor import TutorPublic
+from .models.user import UserRole
 from .services.auth import AuthService
 from .services.course import CourseService
 from .services.internship import InternshipService
 from .services.student import StudentService
+from .services.user import UserService
+from .services.tutor import TutorService
 
 
 logger = logging.getLogger(__name__)
@@ -30,14 +34,33 @@ def get_auth_service(redis_client: RedisDep):
     return AuthService(redis_client=redis_client)
 
 
+# -- USER SERVICE DEPENDENCY --
+def get_user_service(
+    session: SessionDep,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)]
+):
+    """ Provide a UserService instance with DB session and auth service."""
+    return UserService(session=session, auth_service=auth_service)
+
+
 # -- STUDENT SERVICE DEPENDENCY --
 def get_student_service(
     session: SessionDep,
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
-    redis_client: RedisDep
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ):
-    """Provide a StudentService instance with DB session, auth service, and Redis client."""
-    return StudentService(session=session, auth_service=auth_service, redis_client=redis_client)
+    """Provide a StudentService instance with DB session, auth service, and user service."""
+    return StudentService(session=session, auth_service=auth_service, user_service=user_service)
+
+
+# -- TUTOR SERVICE DEPENDENCY --
+def get_tutor_service(
+    session: SessionDep,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+):
+    """Provide a TutorService instance with DB session, auth service, and user service."""
+    return TutorService(session=session, auth_service=auth_service, user_service=user_service)
 
 
 # -- COURSE SERVICE DEPENDENCY --
@@ -52,57 +75,57 @@ def get_internship_service(session: SessionDep):
     return InternshipService(session=session)
 
 
-# -- GET CURRENT STUDENT --
-async def get_current_student(
+# -- GET CURRENT USER --
+async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     student_service: Annotated[StudentService, Depends(get_student_service)],
+    tutor_service: Annotated[TutorService, Depends(get_tutor_service)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)]
-) -> StudentPublic:
-    """Validate the access token and return the corresponding student (active or inactive).
+) -> StudentPublic | TutorPublic:
+    """Validate the access token and return the corresponding user (active or inactive).
     
     E.g. used in /students/me (all students can read their info, but only active ones can modify it)
     """
     access_token_data = await auth_service.validate_access_token(token)
-    student_id = access_token_data.get_uuid()
+    user_id = access_token_data.get_uuid()
 
-    student = student_service.get_student_by_id(id=student_id)
-
-    if student is None:
-        logger.error(f"Valid access token but student {student_id} not found in DB")
+    user = student_service.get_student_by_id(id=user_id)
+    if user is None:
+        user = tutor_service.get_tutor_by_id(id=user_id)
+    if user is None:
+        logger.error(f"Valid access token but user {user_id} not found in DB")
         raise InvalidTokenError("Valid token references non-existent user")
 
-    logger.debug(f"Student {student.student_id} authorized")
+    user_id_display = user.student_id if isinstance(user, StudentPublic) else user.tutor_id
+    logger.debug(f"User {user_id_display} authorized")
 
-    return student
-
-
-# -- GET CURRENT ACTIVE STUDENT --
-async def get_current_active_student(
-    current_student: Annotated[StudentPublic, Depends(get_current_student)]
-) -> StudentPublic:
-    """Validate that the authenticated student is active.
-    
-    Dependency for all protected endpoints (only active students can perform operations within the app).
-    """
-    if not current_student.is_active:
-        logger.warning(f"Inactive student access attempt: {current_student.student_id}")
-        raise InactiveStudentError()
-
-    logger.debug(f"Active student {current_student.student_id} authorized")
-
-    return current_student
+    return user
 
 
-# -- GET CURRENT STUDENT ID ONLY (with EXPIRED ACCESS TOKEN) --
-def get_current_student_id_only(
+# -- REQUIRE ROLE --
+def require_role(role: UserRole, active_only: bool = True):
+    async def _dependency(
+        current_user: Annotated[StudentPublic | TutorPublic, Depends(get_current_user)]
+    ) -> StudentPublic | TutorPublic:
+        if active_only and not current_user.is_active:
+            raise InactiveUserError()
+        if current_user.role != role:
+            raise UnauthorizedRoleError()
+        return current_user
+    return _dependency
+
+
+# -- GET CURRENT USER ID ONLY (with EXPIRED ACCESS TOKEN) --
+def get_current_user_id_only(
     token: str = Depends(oauth2_scheme)
 ) -> uuid.UUID:
-    """Extract the student UUID from a token without validating expiration.
+    """Extract the user UUID from a token without validating expiration.
     
     Used in /auth/refresh to retrieve the student id even with an expired access token.
+    Used also in /auth/logout.
     """
     try:
-        logger.debug("Extracting student ID for refresh")
+        logger.debug("Extracting user ID for refresh")
 
         payload = jwt.decode(
             token,
@@ -111,15 +134,15 @@ def get_current_student_id_only(
             options={"verify_exp": False}  # skip expiration check
         )
 
-        student_id_str: str = payload.get("sub")
+        user_id_str: str = payload.get("sub")
 
-        if student_id_str is None:
+        if user_id_str is None:
             logger.warning("Missing 'sub' claim")
             raise InvalidTokenError("Missing subject in access token")
 
-        logger.debug("Student ID extracted. Authorized to refresh token")
+        logger.debug("User ID extracted. Authorized to refresh token")
 
-        return uuid.UUID(student_id_str)
+        return uuid.UUID(user_id_str)
 
     except (jwt.PyJWTError, ValueError):
         logger.warning("Access token decode failed")

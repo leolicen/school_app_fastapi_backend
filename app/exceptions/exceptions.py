@@ -29,14 +29,23 @@ class DatabaseError(AppError):
         super().__init__(message, "DATABASE_ERROR")
 
 
+class UserNotFoundError(AppError):
+    def __init__(self, message: str = "User not found"):
+        super().__init__(message, "USER_NOT_FOUND")
+        
+        
 class StudentNotFoundError(AppError):
     def __init__(self, message: str = "Student not found"):
         super().__init__(message, "STUDENT_NOT_FOUND")
+        
+class TutorNotFoundError(AppError):
+    def __init__(self, message: str = "Tutor not found"):
+        super().__init__(message, "TUTOR_NOT_FOUND")
 
 
-class InactiveStudentError(AppError):
+class InactiveUserError(AppError):
     def __init__(self, message: str = "Account is inactive"):
-        super().__init__(message, "INACTIVE_STUDENT")
+        super().__init__(message, "INACTIVE_USER")
 
 
 class InvalidCurrentPasswordError(AppError):
@@ -97,3 +106,8 @@ class InternshipEntryNotDeletableError(AppError):
 class InternshipEntryBeforeStartError(AppError):
     def __init__(self, message: str = "Entry date cannot be before agreement start date"):
         super().__init__(message, "INTERNSHIP_ENTRY_BEFORE_START")
+
+
+class UnauthorizedRoleError(AppError):
+    def __init__(self, message: str = "You do not have permission to access this resource"):
+        super().__init__(message, "UNAUTHORIZED_ROLE")

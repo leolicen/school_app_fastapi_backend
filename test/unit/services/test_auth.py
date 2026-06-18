@@ -5,6 +5,7 @@ import jwt
 
 from app.core.settings import settings
 from app.services.auth import AuthService
+from app.models.user import UserRole
 
 
 class TestGetPasswordHash:
@@ -51,14 +52,14 @@ class TestGetPasswordHash:
 class TestCreateAccessToken:
     
     def test_returns_a_string(self):
-        token = AuthService.create_access_token(id= uuid.uuid4())
+        token = AuthService.create_access_token(user_id= uuid.uuid4(), role=UserRole.STUDENT)
         
         assert isinstance(token, str)
     
     
     def test_payload_contains_correct_sub(self):
         student_id = uuid.uuid4()
-        token = AuthService.create_access_token(id=student_id)
+        token = AuthService.create_access_token(user_id=student_id, role=UserRole.STUDENT)
 
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
 
@@ -66,16 +67,23 @@ class TestCreateAccessToken:
         
 
     def test_payload_contains_jti(self):
-        token = AuthService.create_access_token(id=uuid.uuid4())
+        token = AuthService.create_access_token(user_id=uuid.uuid4(), role=UserRole.STUDENT)
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
 
         assert "jti" in payload
         assert len(payload["jti"]) > 0
         
+    def test_payload_contains_role(self):
+        token = AuthService.create_access_token(user_id=uuid.uuid4(), role=UserRole.STUDENT)
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        
+        assert "role" in payload
+        assert len(payload["role"]) > 0
+        
 
     def test_default_expiry_is_15_minutes(self):
         before = datetime.now(timezone.utc).replace(microsecond=0)
-        token = AuthService.create_access_token(id=uuid.uuid4())
+        token = AuthService.create_access_token(user_id=uuid.uuid4(), role=UserRole.STUDENT)
         after = datetime.now(timezone.utc).replace(microsecond=0)
 
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
@@ -87,7 +95,7 @@ class TestCreateAccessToken:
     def test_custom_expiry_is_respected(self):
         delta = timedelta(hours=1)
         before = datetime.now(timezone.utc).replace(microsecond=0)
-        token = AuthService.create_access_token(id=uuid.uuid4(), expires_delta=delta)
+        token = AuthService.create_access_token(user_id=uuid.uuid4(), role=UserRole.STUDENT, expires_delta=delta)
         after = datetime.now(timezone.utc).replace(microsecond=0)
 
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])

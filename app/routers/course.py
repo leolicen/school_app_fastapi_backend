@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends
 
 from ..models.course import CoursePublic, CourseListPublic
 from ..models.student import StudentPublic
-from ..dependencies import get_current_student, get_course_service
+from ..models.user import UserRole
+from ..dependencies import require_role, get_course_service
 from ..services.course import CourseService
 
 
@@ -26,7 +27,7 @@ def get_courses_list(
 # protected (active & inactive students)
 @router.get("/me", response_model=CoursePublic)
 def get_student_course(
-    current_student: Annotated[StudentPublic, Depends(get_current_student)],
+    current_student: Annotated[StudentPublic, Depends(require_role(role=UserRole.STUDENT, active_only=False))],
     course_service: Annotated[CourseService, Depends(get_course_service)]
 ):
     return course_service.get_student_course(current_student.course_id)

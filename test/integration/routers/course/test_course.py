@@ -38,10 +38,10 @@ class TestGetStudentCourse:
     
     # fixture for student registered with non existing course_id => for test_course_not_found only
     @pytest.fixture(name="non_existing_course_user_auth_header")
-    async def test_non_existing_course_user_header_fixture(self, session: Session, async_client: AsyncClient):
+    async def test_non_existing_course_student_header_fixture(self, session: Session, async_client: AsyncClient):
         
         # create student with random course_id
-        user = StudentInDB(
+        student = StudentInDB(
             name="John",
             surname="Doe",
             email="john.doe@gmail.com",
@@ -49,12 +49,12 @@ class TestGetStudentCourse:
             hashed_password=AuthService.get_password_hash("!#CrediblePasSw0rd")
         )
 
-        session.add(user)
+        session.add(student)
         session.commit()
-        session.refresh(user)
+        session.refresh(student)
         
         # login to retrieve tokens
-        response = await async_client.post("/auth/login", data={"username": user.email, "password": "!#CrediblePasSw0rd"})
+        response = await async_client.post("/auth/login", data={"username": student.email, "password": "!#CrediblePasSw0rd"})
         
         # extract access token
         access_token = response.json()["access_token"]
@@ -64,9 +64,9 @@ class TestGetStudentCourse:
         
     
 
-    async def test_course_found(self, async_client: AsyncClient, auth_header):
+    async def test_course_found(self, async_client: AsyncClient, student_auth_header):
 
-        response = await async_client.get("/courses/me", headers=auth_header)
+        response = await async_client.get("/courses/me", headers=student_auth_header)
 
         data = response.json()
 

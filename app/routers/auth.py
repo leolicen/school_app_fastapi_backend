@@ -3,14 +3,17 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 
 from ..core.database import SessionDep
 from ..models.auth import AccessRefreshToken
 from ..models.password import ResetPasswordRequest, ResetPwdData
-from ..dependencies import get_student_service, get_auth_service, get_current_student_id_only
+from ..dependencies import get_student_service, get_auth_service, get_current_user_id_only, get_user_service, get_tutor_service, oauth2_scheme
 from ..services.student import StudentService
+from ..services.user import UserService
+from ..services.tutor import TutorService
 from ..models.student import StudentCreate
+from ..models.tutor import TutorCreate
 from ..core.rate_limiting import limiter
 from ..services.auth import AuthService
 from ..models.auth import RefreshRequest
@@ -18,8 +21,6 @@ from ..exceptions.exceptions import MissingRefreshTokenError
 
 
 logger = logging.getLogger(__name__)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # define /auth router
@@ -36,13 +37,13 @@ router = APIRouter(
 def login(
     request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    student_service: StudentService = Depends(get_student_service)
+    user_service: UserService = Depends(get_user_service)
 ):
-    return student_service.login_for_access_token(form_data)
+    return user_service.login_for_access_token(form_data)
 
 
 # public (register + automatic login)
-@router.post("/register", response_model=AccessRefreshToken)
+@router.post("/student/register", response_model=AccessRefreshToken)
 @limiter.limit("5/hour")
 def register_student(
     request: Request,
@@ -52,6 +53,17 @@ def register_student(
     return student_service.register_and_login(student)
 
 
+# public (register + automatic login)
+@router.post("/tutor/register", response_model=AccessRefreshToken)
+@limiter.limit("5/hour")
+def register_tutor(
+    request: Request,
+    tutor: TutorCreate,
+    tutor_service: TutorService = Depends(get_tutor_service)
+):
+    return tutor_service.register_and_login(tutor)
+
+
 # public
 @router.post("/password/reset-request", response_model=dict[str, str])
 @limiter.limit("5/15minute")
@@ -59,9 +71,9 @@ def request_password_reset(
     request: Request,
     reset_request: ResetPasswordRequest,
     background_tasks: BackgroundTasks,
-    student_service: StudentService = Depends(get_student_service)
+    user_service: UserService = Depends(get_user_service)
 ):
-    return student_service.request_password_reset(reset_request.email, background_tasks)
+    return user_service.request_password_reset(reset_request.email, background_tasks)
 
 
 # protected only with reset token
@@ -71,9 +83,9 @@ def request_password_reset(
 def reset_password(
     request: Request,
     reset_pwd_data: ResetPwdData,  # single body param with token & new_pwd
-    student_service: StudentService = Depends(get_student_service)
+    user_service: UserService = Depends(get_user_service)
 ):
-    return student_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
+    return user_service.confirm_password_reset(reset_pwd_data.raw_reset_token, reset_pwd_data.new_pwd_data.new_pwd_confirm)
 
 
 # protected (but no token expiry validation)
@@ -82,7 +94,7 @@ def reset_password(
 def refresh_tokens(
     request: Request,
     refresh_request: RefreshRequest,
-    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id_only)],
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
     session: SessionDep  # session: Annotated[Session, Depends(SessionDep)] => created args & kwargs issue
 ):
@@ -90,15 +102,15 @@ def refresh_tokens(
         logger.warning("Refresh token missing")
         raise MissingRefreshTokenError()
 
-    return auth_service.refresh_tokens(refresh_request.refresh_token, student_id, session)
+    return auth_service.refresh_tokens(refresh_request.refresh_token, user_id, session)
 
 
 # protected 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
-    student_id: Annotated[uuid.UUID, Depends(get_current_student_id_only)],
-    student_service: Annotated[StudentService, Depends(get_student_service)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id_only)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     access_token: Annotated[str, Depends(oauth2_scheme)]
 ):
-    await student_service.logout(student_id, access_token)
-    return {"detail": "Student successfully logged out"}
+    await user_service.logout(user_id, access_token)
+    return {"detail": "User successfully logged out"}

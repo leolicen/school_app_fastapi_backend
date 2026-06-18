@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, Request
 
 from ..models.internship_agreement import InternshipAgreementPublic
 from ..models.student import StudentPublic
-from ..dependencies import get_internship_service, get_current_student, get_current_active_student
+from ..models.user import UserRole
+from ..dependencies import get_internship_service, require_role
 from ..services.internship import InternshipService
 from ..models.internship_entry import InternshipEntryPublic, InternshipEntryCreate
 from ..exceptions.exceptions import AgreementForbiddenError, AgreementEntryMismatchError
@@ -25,7 +26,7 @@ router = APIRouter(
 # protected (active & inactive students)
 @router.get("/me", response_model=List[InternshipAgreementPublic])
 def get_student_agreements(
-    current_student: Annotated[StudentPublic, Depends(get_current_student)],
+    current_student: Annotated[StudentPublic, Depends(require_role(role=UserRole.STUDENT, active_only=False))],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
 ):
     return internship_service.get_internship_agreements_list(current_student)
@@ -36,7 +37,7 @@ def get_student_agreements(
 def get_student_agreement_entries(
     request: Request,
     agreement_id: uuid.UUID,
-    current_student: Annotated[StudentPublic, Depends(get_current_student)],
+    current_student: Annotated[StudentPublic, Depends(require_role(role=UserRole.STUDENT, active_only=False))],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
 ):
     # check if agreement belongs to student
@@ -62,7 +63,7 @@ def get_student_agreement_entries(
 def create_internship_entry(
     request: Request,
     agreement_id: uuid.UUID,
-    current_active_student: Annotated[StudentPublic, Depends(get_current_active_student)],
+    current_active_student: Annotated[StudentPublic, Depends(require_role(role=UserRole.STUDENT))],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)],
     entry: InternshipEntryCreate
 ):
@@ -97,7 +98,7 @@ def delete_internship_entry(
     request: Request,
     agreement_id: uuid.UUID,
     entry_id: uuid.UUID,
-    current_active_student: Annotated[StudentPublic, Depends(get_current_active_student)],
+    current_active_student: Annotated[StudentPublic, Depends(require_role(role=UserRole.STUDENT))],
     internship_service: Annotated[InternshipService, Depends(get_internship_service)]
 ):
     # check relationship student <-> agreement + active/inactive agreement
