@@ -66,6 +66,7 @@ class CourseUpdate(CourseBase):
     internship_total_hours: Optional[int] = Field(gt=0, default=None)
     start_date: Optional[date] = Field(default=None)
     location: Optional[str] = Field(max_length=100, default=None)
+    is_active: Optional[bool] = Field(default=None)
 
 
 class CourseListPublic(BaseModel):
