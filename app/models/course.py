@@ -3,10 +3,8 @@ from typing import TYPE_CHECKING, List, Optional
 import uuid
 
 from pydantic import BaseModel
-from sqlalchemy import Boolean, Column, DateTime, text, event, DDL
+from sqlalchemy import Boolean, Column, DateTime, text
 from sqlmodel import SQLModel, Field, Relationship
-
-from .guid import GUID
 
 if TYPE_CHECKING:
     from .student import StudentInDB
@@ -33,14 +31,7 @@ class CourseBase(SQLModel):
 
 class CourseInDB(CourseBase, table=True):
     # UUID for model id: more secure (unique and unpredictable, does not expose app info)
-    course_id: uuid.UUID = Field(
-        sa_column=Column(
-            "course_id",
-            GUID(),  # sets CHAR(32) as column type, converts CHAR(32) back to Python uuid.UUID
-            primary_key=True,
-            default=uuid.uuid4  # just in case the record was created Python-side
-        )
-    )
+    course_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     # Field(index=True) tells SQLModel to create a SQL index for this column
     name: str = Field(max_length=100, index=True, unique=True)
 
@@ -58,8 +49,23 @@ class CourseInDB(CourseBase, table=True):
     students: List["StudentInDB"] = Relationship(back_populates="course")
 
 
+class CourseCreate(CourseBase):
+    pass
+
+
 class CoursePublic(CourseBase):
     course_id: uuid.UUID
+    
+
+class CourseUpdate(CourseBase):
+    name: Optional[str] = Field(max_length=100, default=None)
+    course_type: Optional[str] = Field(max_length=50, default=None)
+    schedule: Optional[str] = Field(max_length=100, default=None)
+    schedule_type: Optional[str] = Field(max_length=100, default=None)
+    total_hours: Optional[int] = Field(gt=0, default=None)
+    internship_total_hours: Optional[int] = Field(gt=0, default=None)
+    start_date: Optional[date] = Field(default=None)
+    location: Optional[str] = Field(max_length=100, default=None)
 
 
 class CourseListPublic(BaseModel):
@@ -68,27 +74,3 @@ class CourseListPublic(BaseModel):
     name: str = Field(max_length=100)
 
 
-course_trigger_ddl = DDL(
-    """
-    CREATE TRIGGER IF NOT EXISTS before_insert_courseindb
-    BEFORE INSERT ON courseindb FOR EACH ROW
-    BEGIN
-        IF NEW.course_id IS NULL OR NEW.course_id = '' THEN
-            SET NEW.course_id = REPLACE(UUID(), '-', '');
-        END IF;
-    END
-    """
-)
-
-
-@event.listens_for(CourseInDB.__table__, "after_create")
-def create_course_trigger(target, connection, **kw):
-
-    print(f"Tabella: {target.name}")
-    print(f"Dialect: {connection.dialect.name}")
-
-    if connection.dialect.name == "mysql":
-        connection.execute(course_trigger_ddl)
-        result = connection.execute(text("SHOW TRIGGERS LIKE 'before_insert_courseindb'"))
-        trigger = result.fetchone()
-        print(f"Trigger esiste: {trigger}")

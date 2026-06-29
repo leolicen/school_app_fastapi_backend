@@ -3,11 +3,10 @@ from typing import TYPE_CHECKING, List, Optional
 import uuid
 
 from pydantic import EmailStr, field_validator
-from sqlalchemy import Column, DateTime, ForeignKey, func
+from sqlalchemy import Column, DateTime, func
 from sqlmodel import SQLModel, Field, Relationship
 
 from ..utils.validators import strong_password_validator, normalize_email
-from .guid import GUID
 from .user import UserPublic, UserRole
 
 if TYPE_CHECKING:  # only static type check, does not work at runtime (errors with imports of code like services)
@@ -34,14 +33,7 @@ class StudentInDB(StudentBase, table=True):
     student_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)  # default_factory creates a UUID Python-side before sending to db
     email: str = Field(unique=True, index=True)
     hashed_password: str = Field(max_length=255, index=True)
-    course_id: uuid.UUID = Field(
-        sa_column=Column(  # with sa_column foreign key must be specified within Column()
-            "course_id",
-            GUID(),
-            ForeignKey("courseindb.course_id"),
-            nullable=False
-        )
-    )
+    course_id: uuid.UUID = Field(nullable=False, foreign_key="courseindb.course_id")
 
     student_updated_at: Optional[datetime] = Field(
         default=None,
