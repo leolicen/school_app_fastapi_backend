@@ -26,6 +26,15 @@ class CourseService():
         ).all()
 
         return [CourseListPublic(course_id=course_id, name=name) for course_id, name in courses_list]
+    
+    
+    def get_full_courses_list(self) -> List[CoursePublic]:
+        """ Retrieve a list of all courses, active and inactive. Tutors only. """
+        courses_list: Sequence[CourseInDB] = self._db.exec(
+            select(CourseInDB)
+        ).all()
+
+        return [CoursePublic.model_validate(course) for course in courses_list]
 
 
     def get_student_course(self, course_id: uuid.UUID) -> CoursePublic:
